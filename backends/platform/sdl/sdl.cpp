@@ -385,7 +385,7 @@ void OSystem_SDL::logMessage(LogMessageType::Type type, const char *message) {
 }
 
 Common::String OSystem_SDL::getSystemLanguage() const {
-#if defined(USE_DETECTLANG) && !defined(_WIN32_WCE)
+#if defined(USE_DETECTLANG) && !defined(_WIN32_WCE) && !defined(WINAPI_PARTITION_APP)
 #ifdef WIN32
 	// We can not use "setlocale" (at least not for MSVC builds), since it
 	// will return locales like: "English_USA.1252", thus we need a special

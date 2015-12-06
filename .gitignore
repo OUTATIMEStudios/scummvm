@@ -192,3 +192,10 @@ ScummVM.includes
 #Ignore MS Visual C++ temporary files/subdirectories (except create_project.bat)
 dists/msvc*/**
 !dists/msvc*/create_project.bat
+dists/winuwp/ScummVMUniversal/BundleArtifacts/
+dists/winuwp/AppPackages/
+dists/winuwp/ScummVMUniversal/Package.StoreAssociation.xml
+dists/winuwp/ScummVMUniversal/ScummVMUniversal_StoreKey.pfx
+dists/winuwp/ScummVMUniversal/_pkginfo.txt
+dists/winuwp/ScummVMUniversal/_scale-100.appx
+dists/winuwp/ScummVMUniversal/_scale-400.appx
