@@ -11,9 +11,11 @@
 #include "backends\mixer\sdl\sdl-mixer.h"
 
 using namespace Windows::Storage;
+using namespace Windows::System::Display;
 
 OSystem_WinUWP::OSystem_WinUWP() : _virtualKbd(false) {
 	_fsFactory = new WinUWPFilesystemFactory();
+	_displayRequest = ref new DisplayRequest();
 }
 
 void OSystem_WinUWP::initBackend() {
@@ -40,6 +42,18 @@ void OSystem_WinUWP::initBackend() {
 
 	SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
 	SDL_ShowCursor(SDL_TRUE);	
+}
+
+void OSystem_WinUWP::engineInit()
+{
+	OSystem_SDL::engineInit();
+	_displayRequest->RequestActive();
+}
+
+void OSystem_WinUWP::engineDone()
+{
+	OSystem_SDL::engineDone();
+	_displayRequest->RequestRelease();
 }
 
 Common::String OSystem_WinUWP::getDefaultConfigFileName() {

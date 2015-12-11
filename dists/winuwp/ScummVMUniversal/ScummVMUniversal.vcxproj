@@ -27,7 +27,7 @@
     <AppContainerApplication>true</AppContainerApplication>
     <ApplicationType>Windows Store</ApplicationType>
     <ApplicationTypeRevision>8.2</ApplicationTypeRevision>
-    <WindowsTargetPlatformVersion>10.0.10563.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformMinVersion>10.0.10563.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -77,11 +77,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <PackageCertificateThumbprint>BA5C46EA04AB8F5A363A644E25583988F6D809EE</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>0DB40C02374C942DFB29A9B3EA87E2954FD700AA</PackageCertificateThumbprint>
     <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x86</AppxBundlePlatforms>
-    <PackageCertificateKeyFile>ScummVMUniversal_StoreKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>ScummVMUniversal_TemporaryKey.pfx</PackageCertificateKeyFile>
     <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -222,7 +222,6 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="cursor1.cur" />
-    <None Include="ScummVMUniversal_StoreKey.pfx" />
     <None Include="ScummVMUniversal_TemporaryKey.pfx" />
     <None Include="SDL2.dll">
       <DeploymentContent>true</DeploymentContent>
@@ -249,9 +248,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ScummVMUniversal.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

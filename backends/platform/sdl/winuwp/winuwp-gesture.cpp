@@ -48,7 +48,7 @@ void WinUWPGesture::OnManipulationUpdated(GestureRecognizer^ sender, Manipulatio
 void WinUWPGesture::OnManipulationCompleted(GestureRecognizer^ sender, ManipulationCompletedEventArgs^ e)
 {
 	Common::Event event;
-	if (ABS(e->Velocities.Linear.X) >= 2.5) {
+	if (e->Velocities.Linear.X >= 2.5) {
 		event.kbd.keycode = Common::KEYCODE_ESCAPE;
 		event.kbd.ascii = Common::ASCII_ESCAPE;
 		event.type = Common::EVENT_KEYDOWN;
