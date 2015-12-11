@@ -258,7 +258,7 @@ void ASurface::transBlitFrom(ASurface &src) {
 	blitFrom(src);
 }
 
-void ASurface::blitFrom(Graphics::Surface &src) {
+void ASurface::blitFrom(const Graphics::Surface &src) {
 	assert(w >= src.w && h >= src.h);
 	for (int y = 0; y < src.h; ++y) {
 		const byte *srcP = (const byte *)src.getBasePtr(0, y);
@@ -292,6 +292,13 @@ void ASurface::sPlotB(SpriteFrame *frame, const Common::Rect &bounds) {
 
 void ASurface::copyBlock(ASurface *src, const Common::Rect &bounds) {
 	copyRectToSurface(*src, bounds.left, bounds.top, bounds);
+}
+
+void ASurface::copyTo(ASurface *dest) { 
+	if (dest->empty())
+		dest->create(this->w, this->h);
+
+	dest->blitFrom(*this); 
 }
 
 void ASurface::saveBlock(const Common::Rect &bounds) {
