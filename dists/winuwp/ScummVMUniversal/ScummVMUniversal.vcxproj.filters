@@ -48,8 +48,6 @@
     <None Include="Assets\themes\scummclassic.zip">
       <Filter>Assets\themes</Filter>
     </None>
-    <None Include="Package.StoreAssociation.xml" />
-    <None Include="ScummVMUniversal_StoreKey.pfx" />
     <None Include="SDL2.dll" />
   </ItemGroup>
   <ItemGroup>
@@ -65,13 +63,13 @@
     <ClCompile Include="..\..\..\backends\platform\sdl\winuwp\winuwp-main.cpp">
       <Filter>backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\backends\events\winuwpsdl\winuwpsdl-events.cpp">
-      <Filter>backend</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\backends\platform\sdl\winuwp\winuwp-gesture.cpp">
       <Filter>backend</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\backends\fs\winuwp\winuwp-stream.cpp">
+      <Filter>backend</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.cpp">
       <Filter>backend</Filter>
     </ClCompile>
   </ItemGroup>
@@ -87,13 +85,13 @@
     <ClInclude Include="..\..\..\backends\fs\winuwp\winuwp-fs-factory.h">
       <Filter>backend</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\backends\events\winuwpsdl\winuwpsdl-events.h">
-      <Filter>backend</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\backends\platform\sdl\winuwp\winuwp-gesture.h">
       <Filter>backend</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\backends\fs\winuwp\winuwp-stream.h">
+      <Filter>backend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.h">
       <Filter>backend</Filter>
     </ClInclude>
   </ItemGroup>

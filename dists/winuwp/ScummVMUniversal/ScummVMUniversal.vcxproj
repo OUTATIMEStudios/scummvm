@@ -228,18 +228,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\backends\events\winuwpsdl\winuwpsdl-events.cpp" />
     <ClCompile Include="..\..\..\backends\fs\winuwp\winuwp-fs-factory.cpp" />
     <ClCompile Include="..\..\..\backends\fs\winuwp\winuwp-fs.cpp" />
+    <ClCompile Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.cpp" />
     <ClCompile Include="..\..\..\backends\platform\sdl\winuwp\winuwp-main.cpp" />
     <ClCompile Include="..\..\..\backends\platform\sdl\winuwp\winuwp.cpp" />
     <ClCompile Include="..\..\..\backends\platform\sdl\winuwp\winuwp-gesture.cpp" />
     <ClCompile Include="..\..\..\backends\fs\winuwp\winuwp-stream.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\backends\events\winuwpsdl\winuwpsdl-events.h" />
     <ClInclude Include="..\..\..\backends\fs\winuwp\winuwp-fs-factory.h" />
     <ClInclude Include="..\..\..\backends\fs\winuwp\winuwp-fs.h" />
+    <ClInclude Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.h" />
     <ClInclude Include="..\..\..\backends\platform\sdl\winuwp\portdefs.h" />
     <ClInclude Include="..\..\..\backends\platform\sdl\winuwp\winuwp.h" />
     <ClInclude Include="..\..\..\backends\platform\sdl\winuwp\winuwp-gesture.h" />
