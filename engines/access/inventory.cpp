@@ -120,6 +120,7 @@ int InventoryManager::newDisplayInv() {
 	getList();
 	initFields();
 
+	files._setPaletteFlag = false;
 	files.loadScreen(&_vm->_buffer1, 99, 0);
 	_vm->_buffer1.copyTo(&_vm->_buffer2);
 	_vm->copyBF2Vid();
@@ -182,7 +183,6 @@ int InventoryManager::newDisplayInv() {
 	_invModeFlag = false;
 	events.debounceLeft();
 	_vm->_timers.restoreTimers();
-	_vm->_startup = 1;
 
 	int result = 0;
 	if (!_invRefreshFlag) {
