@@ -246,7 +246,6 @@
     <ClCompile Include="..\..\backends\midi\windows.cpp" />
     <ClCompile Include="..\..\backends\mixer\doublebuffersdl\doublebuffersdl-mixer.cpp" />
     <ClCompile Include="..\..\backends\mixer\nullmixer\nullsdl-mixer.cpp" />
-    <ClCompile Include="..\..\backends\mixer\sdl13\sdl13-mixer.cpp" />
     <ClCompile Include="..\..\backends\mixer\sdl\sdl-mixer.cpp" />
     <ClCompile Include="..\..\backends\mutex\sdl\sdl-mutex.cpp" />
     <ClCompile Include="..\..\backends\platform\sdl\win32\win32-main.cpp" />
@@ -517,7 +516,6 @@
     <ClInclude Include="..\..\backends\log\log.h" />
     <ClInclude Include="..\..\backends\mixer\doublebuffersdl\doublebuffersdl-mixer.h" />
     <ClInclude Include="..\..\backends\mixer\nullmixer\nullsdl-mixer.h" />
-    <ClInclude Include="..\..\backends\mixer\sdl13\sdl13-mixer.h" />
     <ClInclude Include="..\..\backends\mixer\sdl\sdl-mixer.h" />
     <ClInclude Include="..\..\backends\mutex\sdl\sdl-mutex.h" />
     <ClInclude Include="..\..\backends\mutex\mutex.h" />

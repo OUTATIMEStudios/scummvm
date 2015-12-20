@@ -6,6 +6,7 @@
 #include <..\um\debugapi.h>
 
 using namespace Windows::Devices::Input;
+using namespace Windows::UI::Core;
 
 WinUWPGesture::WinUWPGesture()
 {
@@ -25,7 +26,6 @@ void WinUWPGesture::Init()
 	_recognizer->ManipulationCompleted += ref new TypedEventHandler<GestureRecognizer^, ManipulationCompletedEventArgs^>(this, &WinUWPGesture::OnManipulationCompleted);
 
 	Platform::Agile<CoreWindow^> _agileWindow;
-
 	auto _window = _agileWindow->GetForCurrentThread();
 
 	_cursor = ref new CoreCursor(CoreCursorType::Custom, 101);
@@ -34,7 +34,7 @@ void WinUWPGesture::Init()
 	_window->PointerReleased += ref new TypedEventHandler<CoreWindow^, PointerEventArgs^>(this, &WinUWPGesture::OnPointerReleased);
 	_window->PointerMoved += ref new TypedEventHandler<CoreWindow^, PointerEventArgs^>(this, &WinUWPGesture::OnPointerMoved);
 
-	Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &WinUWPGesture::OnBackRequested);
+	SystemNavigationManager::GetForCurrentView()->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &WinUWPGesture::OnBackRequested);
 }
 
 void WinUWPGesture::OnManipulationStarted(GestureRecognizer^ sender, ManipulationStartedEventArgs^ e)

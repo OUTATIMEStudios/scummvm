@@ -209,11 +209,6 @@ void OptionsDialog::open() {
 		_fullscreenCheckbox->setEnabled(false);
 		_aspectCheckbox->setState(false);
 		_aspectCheckbox->setEnabled(false);
-#elif WINAPI_FAMILY_APP
-		_fullscreenCheckbox->setState(false);
-		_fullscreenCheckbox->setEnabled(false);
-		_aspectCheckbox->setState(false);
-		_aspectCheckbox->setEnabled(false);
 #else // !SMALL_SCREEN_DEVICE
 		// Fullscreen setting
 		_fullscreenCheckbox->setState(ConfMan.getBool("fullscreen", _domain));

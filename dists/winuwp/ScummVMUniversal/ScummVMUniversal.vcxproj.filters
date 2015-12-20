@@ -69,9 +69,6 @@
     <ClCompile Include="..\..\..\backends\fs\winuwp\winuwp-stream.cpp">
       <Filter>backend</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.cpp">
-      <Filter>backend</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -89,9 +86,6 @@
       <Filter>backend</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\backends\fs\winuwp\winuwp-stream.h">
-      <Filter>backend</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\backends\graphics\winuwpsdl\winuwp-graphics.h">
       <Filter>backend</Filter>
     </ClInclude>
   </ItemGroup>

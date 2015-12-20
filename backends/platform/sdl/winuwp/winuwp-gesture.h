@@ -1,7 +1,6 @@
 #include "common/events.h"
 #include "common/scummsys.h"
 #include "common/system.h"
-#include "backends/graphics/surfacesdl/surfacesdl-graphics.h"
 
 using namespace Windows::UI::Input;
 using namespace Windows::UI::Core;
@@ -27,7 +26,7 @@ private:
 	void OnManipulationCompleted(GestureRecognizer^ sender, ManipulationCompletedEventArgs^ e);
 
 	void OnBackRequested(Object^ sender, BackRequestedEventArgs^ e);
-
+	
 	void OnPointerPressed(CoreWindow^ sender, PointerEventArgs^ e);
 	void OnPointerReleased(CoreWindow^ sender, PointerEventArgs^ e);
 	void OnPointerMoved(CoreWindow^ sender, PointerEventArgs^ e);

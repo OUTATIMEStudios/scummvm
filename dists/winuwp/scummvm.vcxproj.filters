@@ -163,9 +163,6 @@
     <Filter Include="video">
       <UniqueIdentifier>9BBB9F20-9510-443E-8694-8E6830FC4A3D</UniqueIdentifier>
     </Filter>
-    <Filter Include="backends\mixer\sdl13">
-      <UniqueIdentifier>{d3befd72-5eb0-400f-9eee-b3ea11a0c0d9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="backends\mixer\nullmixer">
       <UniqueIdentifier>{ce8341b4-bd91-4bb4-a014-0712647a2866}</UniqueIdentifier>
     </Filter>
@@ -926,9 +923,6 @@
     </ClCompile>
     <ClCompile Include="..\..\video\video_decoder.cpp">
       <Filter>video</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\backends\mixer\sdl13\sdl13-mixer.cpp">
-      <Filter>backends\mixer\sdl13</Filter>
     </ClCompile>
     <ClCompile Include="..\..\backends\mixer\nullmixer\nullsdl-mixer.cpp">
       <Filter>backends\mixer\nullmixer</Filter>
@@ -1867,9 +1861,6 @@
     </ClInclude>
     <ClInclude Include="..\..\video\video_decoder.h">
       <Filter>video</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\backends\mixer\sdl13\sdl13-mixer.h">
-      <Filter>backends\mixer\sdl13</Filter>
     </ClInclude>
     <ClInclude Include="..\..\backends\mixer\nullmixer\nullsdl-mixer.h">
       <Filter>backends\mixer\nullmixer</Filter>
