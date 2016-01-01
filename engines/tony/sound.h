@@ -179,7 +179,7 @@ public:
 	 * @returns             True is everything is OK, False otherwise
 	 */
 
-	bool loadFile(const char *fileName, uint32 codec = FPCODEC_RAW);
+	bool loadFile(const char *fileName);
 	bool loadWave(Common::SeekableReadStream *stream);
 	bool loadVoiceFromVDB(Common::File &vdbFP);
 
@@ -246,7 +246,6 @@ class FPStream {
 private:
 	uint32 _bufferSize;                  // Buffer size (bytes)
 	uint32 _size;                        // Stream size (bytes)
-	uint32 _codec;                       // CODEC used
 
 	Common::File _file;                  // File handle used for the stream
 
@@ -297,12 +296,11 @@ public:
 	 * Opens a file stream
 	 *
 	 * @param fileName      Filename to be opened
-	 * @param codec         CODEC to be used to uncompress samples
 	 *
 	 * @returns             True is everything is OK, False otherwise
 	 */
 
-	bool loadFile(const Common::String &fileName, uint32 codec = FPCODEC_RAW, int sync = 2000);
+	bool loadFile(const Common::String &fileName, int sync);
 
 	/**
 	 * Closes a file stream (opened or not).
