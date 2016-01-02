@@ -130,6 +130,9 @@
       <CompileAsWinRT>true</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <UndefinePreprocessorDefinitions>WIN32</UndefinePreprocessorDefinitions>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <PreBuildEvent>
       <Command>copy $(SCUMMVM_LIBS)\bin\ARM_uwp\SDL2.dll</Command>
@@ -182,6 +185,7 @@
       </StringPooling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <UndefinePreprocessorDefinitions>WIN32</UndefinePreprocessorDefinitions>
+      <Optimization>MaxSpeed</Optimization>
     </ClCompile>
     <PreBuildEvent>
       <Command>copy $(SCUMMVM_LIBS)\bin\x86_uwp\SDL2.dll</Command>

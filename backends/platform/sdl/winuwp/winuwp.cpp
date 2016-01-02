@@ -8,6 +8,7 @@
 #include "backends\fs\winuwp\winuwp-fs.h"
 #include "backends\fs\winuwp\winuwp-fs-factory.h"
 #include "backends\mixer\sdl\sdl-mixer.h"
+#include "backends\graphics\winuwpsdl\winuwpsdl-graphics.h"
 
 using namespace Windows::Storage;
 using namespace Windows::System::Display;
@@ -28,6 +29,14 @@ void OSystem_WinUWP::initBackend() {
 	ConfMan.set("gui_theme", Common::String(WinUWPFilesystemNode::toAscii(installedLocation->Path->Data())) + "\\Assets\\themes\\scummmodern.zip");
 	ConfMan.set("savepath", Common::String(WinUWPFilesystemNode::toAscii(local->Path->Data())) + "\\saves\\");
 	
+	if (!_eventSource) {
+		_eventSource = new SdlEventSource();
+	}
+
+	if (!_graphicsManager) {
+		_graphicsManager = new WinUWPSdlGraphicsManager(_eventSource, _window);
+	}
+
 	OSystem_SDL::initBackend();
 	_gesture = ref new WinUWPGesture();
 

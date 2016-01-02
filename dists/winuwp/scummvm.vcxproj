@@ -236,6 +236,7 @@
     <ClCompile Include="..\..\backends\fs\stdiostream.cpp" />
     <ClCompile Include="..\..\backends\graphics\sdl\sdl-graphics.cpp" />
     <ClCompile Include="..\..\backends\graphics\surfacesdl\surfacesdl-graphics.cpp" />
+    <ClCompile Include="..\..\backends\graphics\winuwpsdl\winuwpsdl-graphics.cpp" />
     <ClCompile Include="..\..\backends\log\log.cpp" />
     <ClCompile Include="..\..\backends\midi\alsa.cpp" />
     <ClCompile Include="..\..\backends\midi\dmedia.cpp" />
@@ -513,6 +514,7 @@
     <ClInclude Include="..\..\backends\graphics\surfacesdl\surfacesdl-graphics.h" />
     <ClInclude Include="..\..\backends\graphics\default-palette.h" />
     <ClInclude Include="..\..\backends\graphics\graphics.h" />
+    <ClInclude Include="..\..\backends\graphics\winuwpsdl\winuwpsdl-graphics.h" />
     <ClInclude Include="..\..\backends\log\log.h" />
     <ClInclude Include="..\..\backends\mixer\doublebuffersdl\doublebuffersdl-mixer.h" />
     <ClInclude Include="..\..\backends\mixer\nullmixer\nullsdl-mixer.h" />

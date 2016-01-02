@@ -166,6 +166,9 @@
     <Filter Include="backends\mixer\nullmixer">
       <UniqueIdentifier>{ce8341b4-bd91-4bb4-a014-0712647a2866}</UniqueIdentifier>
     </Filter>
+    <Filter Include="backends\graphics\winuwp">
+      <UniqueIdentifier>{34eca86a-30ca-4757-86cc-1f4f7e0e70f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\audio\adlib.cpp">
@@ -950,6 +953,9 @@
     </ClCompile>
     <ClCompile Include="..\..\graphics\scaler\scalebit.cpp">
       <Filter>graphics\scaler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\backends\graphics\winuwpsdl\winuwpsdl-graphics.cpp">
+      <Filter>backends\graphics\winuwp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1879,6 +1885,9 @@
     </ClInclude>
     <ClInclude Include="..\..\graphics\scaler\scalebit.h">
       <Filter>graphics\scaler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\backends\graphics\winuwpsdl\winuwpsdl-graphics.h">
+      <Filter>backends\graphics\winuwp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
