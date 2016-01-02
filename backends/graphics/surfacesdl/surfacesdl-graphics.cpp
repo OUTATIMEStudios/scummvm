@@ -2417,28 +2417,34 @@ void SurfaceSdlGraphicsManager::setWindowResolution(int width, int height) {
 	// We expect full screen resolution as inputs coming from the event system.
 	_eventSource->resetKeyboadEmulation(_windowWidth - 1, _windowHeight - 1);
 
-	// Calculate the "viewport" for the actual area we draw in. In fullscreen
-	// we can easily get a different resolution than what we requested. In
-	// this case, we add black bars if necessary to assure the aspect ratio
-	// is preserved.
-	const frac_t outputAspect  = intToFrac(_windowWidth) / _windowHeight;
-	const frac_t desiredAspect = intToFrac(_videoMode.hardwareWidth) / _videoMode.hardwareHeight;
-
 	_viewport.w = _windowWidth;
 	_viewport.h = _windowHeight;
 
-	// Adjust one dimension for mantaining the aspect ratio.
-	if (abs(outputAspect - desiredAspect) >= (int)(FRAC_ONE / 1000)) {
-		if (outputAspect < desiredAspect) {
-			_viewport.h = _videoMode.hardwareHeight * _windowWidth / _videoMode.hardwareWidth;
-		} else if (outputAspect > desiredAspect) {
-			_viewport.w = _videoMode.hardwareWidth * _windowHeight / _videoMode.hardwareHeight;
+	_viewport.x = 0;
+	_viewport.y = 0;
+	
+	if (_videoMode.aspectRatioCorrection) {
+
+		// Calculate the "viewport" for the actual area we draw in. In fullscreen
+		// we can easily get a different resolution than what we requested. In
+		// this case, we add black bars if necessary to assure the aspect ratio
+		// is preserved.
+		const frac_t outputAspect = intToFrac(_windowWidth) / _windowHeight;
+		const frac_t desiredAspect = intToFrac(_videoMode.hardwareWidth) / _videoMode.hardwareHeight;
+
+		// Adjust one dimension for mantaining the aspect ratio.
+		if (abs(outputAspect - desiredAspect) >= (int)(FRAC_ONE / 1000)) {
+			if (outputAspect < desiredAspect) {
+				_viewport.h = _videoMode.hardwareHeight * _windowWidth / _videoMode.hardwareWidth;
+			}
+			else if (outputAspect > desiredAspect) {
+				_viewport.w = _videoMode.hardwareWidth * _windowHeight / _videoMode.hardwareHeight;
+			}
 		}
+
+		_viewport.x = (_windowWidth - _viewport.w) / 2;
+		_viewport.y = (_windowHeight - _viewport.h) / 2;
 	}
-
-	_viewport.x = (_windowWidth  - _viewport.w) / 2;
-	_viewport.y = (_windowHeight - _viewport.h) / 2;
-
 	// Force a full redraw because we changed the viewport.
 	_forceFull = true;
 }
