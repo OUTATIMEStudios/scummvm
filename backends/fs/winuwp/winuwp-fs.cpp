@@ -9,6 +9,7 @@
 #include "common/bufferedstream.h"
 
 using namespace concurrency;
+using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
 using namespace Windows::UI::Core;
 using namespace Windows::Storage;
@@ -24,14 +25,6 @@ WinUWPFilesystemNode::WinUWPFilesystemNode() {
 WinUWPFilesystemNode::WinUWPFilesystemNode(const Common::String &path) {
 	_path = path;
 	setFlags();
-}
-
-WinUWPFilesystemNode::WinUWPFilesystemNode(const Common::String &path, const Common::String &displayName) {
-	_displayName = displayName;
-	_isDirectory = true;
-	_isValid = true;
-	_isPseudoRoot = false;
-	_path = path;
 }
 
 char* WinUWPFilesystemNode::toAscii(const wchar_t *str) {
@@ -58,15 +51,16 @@ void WinUWPFilesystemNode::createDir(StorageFolder^ dir, Platform::String ^subDi
 	});
 }
 
-IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(const char* path)
-{
-	IStorageItem^ toReturn;
-	volatile bool done = false;
-
+Platform::String^ WinUWPFilesystemNode::getAccessListToken(const char* path) const {
 	std::string str = std::string(path);
 	std::replace(str.begin(), str.end(), '\\', '_');
 	std::replace(str.begin(), str.end(), ':', '_');
-	auto token = ref new Platform::String(toUnicode(str.c_str()));
+	return ref new Platform::String(toUnicode(str.c_str()));
+}
+
+IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(Platform::String^ token) const {
+	IStorageItem^ toReturn;
+	volatile bool done = false;
 
 	if (AccessCache::StorageApplicationPermissions::FutureAccessList->ContainsItem(token)) {
 		auto t = create_task(AccessCache::StorageApplicationPermissions::FutureAccessList->GetItemAsync(token));
@@ -75,16 +69,79 @@ IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(const char* path)
 			done = true;
 		});
 	}
-	else
+	else {
 		done = true;
+	}
+
+	auto window = CoreWindow::GetForCurrentThread();
+
+	while (!done) {
+		if (window != nullptr && window->Dispatcher->HasThreadAccess)
+			window->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneIfPresent);
+	}
+	return toReturn;
+}
+
+IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(const char* path) const {
+	return getItemFromAccessList(getAccessListToken(path));
+}
+
+void WinUWPFilesystemNode::addStorageItem(AbstractFSList &myList, IStorageItem^ item) const {
+	WinUWPFilesystemNode node;
+	node._path = toAscii(item->Path->Data());
+	node._displayName = toAscii(item->Name->Data());
+	node._isValid = true;
+	node._isDirectory = (item->Attributes & FileAttributes::Directory) == FileAttributes::Directory;
+	node._isReadonly = (item->Attributes & FileAttributes::ReadOnly) == FileAttributes::ReadOnly;
+	node._isPseudoRoot = false;
+
+	myList.push_back(new WinUWPFilesystemNode(node));
+}
+
+void WinUWPFilesystemNode::addStorageItems(AbstractFSList &myList, IVectorView<IStorageItem^>^ items) const {
+	for (auto it = items->First(); it->HasCurrent; it->MoveNext()) {
+		addStorageItem(myList, it->Current);
+	}
+}
+
+void WinUWPFilesystemNode::getAccessList(AbstractFSList &myList) const {
+	auto entries = AccessCache::StorageApplicationPermissions::FutureAccessList->Entries;
+	for (auto it = entries->First(); it->HasCurrent; it->MoveNext()) {
+		auto item = getItemFromAccessList(it->Current.Token);
+		addStorageItem(myList, item);
+	}
+	addStorageItem(myList, ApplicationData::Current->LocalFolder);
+}
+
+void WinUWPFilesystemNode::addItemsFromFolderPicker(Common::String & path) const {
+
+	volatile bool done = false;
+
+	Pickers::FolderPicker^ picker = ref new Pickers::FolderPicker();
+
+	// Oddly enough, even a Folderpicker needs at least one FileTypeFilter.
+	picker->FileTypeFilter->Append(".scummvm");
+	picker->ViewMode = Pickers::PickerViewMode::Thumbnail;
+	picker->SuggestedStartLocation = Pickers::PickerLocationId::Downloads;
+
+	auto t = create_task(picker->PickSingleFolderAsync());
+	t.then([this, &path, &done](StorageFolder^ folder) {
+		if (folder == nullptr) {
+			done = true;
+			cancel_current_task();
+			path = "";
+		}
+		char* p = toAscii(folder->Path->Data());
+		AccessCache::StorageApplicationPermissions::FutureAccessList->AddOrReplace(getAccessListToken(p), folder);
+		path = Common::String(p);
+		done = true;
+	});
 
 	auto window = CoreWindow::GetForCurrentThread();
 	while (!done) {
 		if (window != nullptr && window->Dispatcher->HasThreadAccess)
 			window->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneIfPresent);
 	}
-
-	return toReturn;
 }
 
 void WinUWPFilesystemNode::setFlags() {
@@ -99,27 +156,45 @@ void WinUWPFilesystemNode::setFlags() {
 
 	volatile bool done = false;
 	const char *start = _path.c_str();
-	const char *end = lastPathComponent(_path, '\\');
 
 	//We are first trying to get the item from FutureAccessList
 	IStorageItem^ item = getItemFromAccessList(start);
 
 	//if that fails, we are trying to fetch the item directly
 	if (item == nullptr) {
-		Common::String p = Common::String(start, end - start);
-		Platform::String ^parent = ref new Platform::String(toUnicode(p.c_str()));
-		Platform::String ^child = ref new Platform::String(toUnicode(end));
-
-		auto t = create_task(StorageFolder::GetFolderFromPathAsync(parent));
-		t.then([this, &done, child](StorageFolder ^folder) -> task < IStorageItem ^ > {
-			return create_task(folder->GetItemAsync(child));
-		}).then([this, &done, &item](task<IStorageItem ^> t) {
-			try {
-				item = t.get();
-			}
-			catch (...) {}
-			done = true;
-		});
+		if (_path.lastChar() == '\\') {
+			auto t = create_task(StorageFolder::GetFolderFromPathAsync(ref new Platform::String(toUnicode(start))));
+			t.then([this, &item, &done](task<StorageFolder^> t1) {
+				try
+				{
+					item = t1.get();
+					done = true;
+				}
+				catch (...)
+				{
+					_path = "";
+					_isValid = false;
+					_isReadonly = true;
+					_isDirectory = true;
+					_isPseudoRoot = true;
+					done = true;
+				}
+			});
+		}
+		else {
+			auto t = create_task(StorageFile::GetFileFromPathAsync(ref new Platform::String(toUnicode(start))));
+			t.then([&item, &done](task<StorageFile^> t1) {
+				try
+				{
+					item = t1.get();
+					done = true;
+				}
+				catch (...)
+				{
+					done = true;
+				}
+			});
+		}
 
 		auto window = CoreWindow::GetForCurrentThread();
 		while (!done) {
@@ -134,7 +209,17 @@ void WinUWPFilesystemNode::setFlags() {
 		_isReadonly = (item->Attributes & FileAttributes::ReadOnly) == FileAttributes::ReadOnly;
 		_displayName = toAscii(item->Name->Data());
 		_isPseudoRoot = false;
+		return;
 	}
+
+	_path = "";
+}
+
+Common::String WinUWPFilesystemNode::getPath() const
+{
+	if (_isDirectory && !_path.empty() && _path.lastChar() != '\\')
+		return _path + '\\';
+	return _path;
 }
 
 bool WinUWPFilesystemNode::isReadable() const {
@@ -169,77 +254,48 @@ bool WinUWPFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, bo
 	assert(_isDirectory);
 
 	Platform::String ^path = ref new Platform::String(toUnicode(_path.c_str()));
-
-	if (_isPseudoRoot || _path.empty()) {
-		showFolderPicker(myList, done);
-	}
-	else {
+	
+	if(_isPseudoRoot)
+		getAccessList(myList);
+	else
+	{
 		auto t = create_task(StorageFolder::GetFolderFromPathAsync(path));
-		t.then([&myList, &done](StorageFolder ^folder) -> task < IVectorView<IStorageItem ^> ^ > {
+		t.then([](StorageFolder ^folder) -> task < IVectorView<IStorageItem ^> ^ > {
 			return create_task(folder->GetItemsAsync());
-		}).then([&myList, &done](task<IVectorView<IStorageItem ^> ^> t) {
+		}).then([this, &myList, &done](task<IVectorView<IStorageItem ^> ^> t) {
 			try {
-				IVectorView<IStorageItem ^> ^items = t.get();
-				for (auto it = items->First(); it->HasCurrent; it->MoveNext()) {
-					IStorageItem ^item = it->Current;
-					WinUWPFilesystemNode node;
-					node._path = toAscii(item->Path->Data());
-					node._displayName = toAscii(item->Name->Data());
-					node._isValid = true;
-					node._isDirectory = (item->Attributes & FileAttributes::Directory) == FileAttributes::Directory;
-					node._isReadonly = (item->Attributes & FileAttributes::ReadOnly) == FileAttributes::ReadOnly;
-					node._isPseudoRoot = false;
-
-					myList.push_back(new WinUWPFilesystemNode(node));
-				}
+				addStorageItems(myList, t.get());
+				done = true;
 			}
 			catch (...) {
+				done = true;
 			}
-			done = true;
 		});
-	}
 
-	auto window = CoreWindow::GetForCurrentThread();
-	while (!done) {
-		if (window != nullptr && window->Dispatcher->HasThreadAccess)
-			window->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneIfPresent);
-	}
+		auto window = CoreWindow::GetForCurrentThread();
+		while (!done) {
+			if (window != nullptr && window->Dispatcher->HasThreadAccess)
+				window->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneIfPresent);
+		}
+	}	
 
 	return true;
 }
 
-void WinUWPFilesystemNode::showFolderPicker(AbstractFSList &myList, volatile bool &done) const {
-
-	Pickers::FolderPicker^ picker = ref new Pickers::FolderPicker();
-	picker->SuggestedStartLocation = Pickers::PickerLocationId::Downloads;
-	// Oddly enough, even a Folderpicker needs at least one FileTypeFilter.
-	picker->FileTypeFilter->Append(".scummvm");
-	picker->ViewMode = Pickers::PickerViewMode::Thumbnail;
-
-	auto t = create_task(picker->PickSingleFolderAsync());
-	t.then([this, &myList, &done](StorageFolder ^folder) {
-		try {
-			if (folder != nullptr) {
-				std::string str = std::string(toAscii(folder->Path->Data()));
-				std::replace(str.begin(), str.end(), '\\', '_');
-				std::replace(str.begin(), str.end(), ':', '_');
-				AccessCache::StorageApplicationPermissions::FutureAccessList->AddOrReplace(ref new Platform::String(toUnicode(str.c_str())), folder);
-				myList.push_back(new WinUWPFilesystemNode(toAscii(folder->Path->Data()), toAscii(folder->Name->Data())));
-			}
-		}
-		catch (...) {
-		}
-		done = true;
-	});
-}
-
 AbstractFSNode *WinUWPFilesystemNode::getParent() const {
+	if (_isPseudoRoot) {
+		Common::String path;
+		addItemsFromFolderPicker(path);
+		if (!path.empty()) {
+			new WinUWPFilesystemNode(path);
+		}			
+	} else if (!_path.empty()) {
+		const char *start = _path.c_str();
+		const char *end = lastPathComponent(_path, '\\');
+		Common::String path = Common::String(start, end - start);
+		return new WinUWPFilesystemNode(path);
+	}
 
-	if (_isPseudoRoot)
-		return 0;
-
-	// For reasons of simplicity we are going back to root (meaning we are showing the system's filepicker).
-	// This should be changed to simulating a file system via the FutureAccessList entries.
 	return new WinUWPFilesystemNode();
 }
 
