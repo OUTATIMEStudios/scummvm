@@ -51,8 +51,14 @@ void WinUWPFilesystemNode::createDir(StorageFolder^ dir, Platform::String ^subDi
 	});
 }
 
-Platform::String^ WinUWPFilesystemNode::getAccessListToken(const char* path) const {
-	std::string str = std::string(path);
+Platform::String^ WinUWPFilesystemNode::getAccessListToken(const Common::String& path) const {
+	
+	Common::String s = path;
+
+	if (s.lastChar() == '\\')
+		s.deleteLastChar();
+
+	std::string str = std::string(s.c_str());
 	std::replace(str.begin(), str.end(), '\\', '_');
 	std::replace(str.begin(), str.end(), ':', '_');
 	return ref new Platform::String(toUnicode(str.c_str()));
@@ -82,7 +88,7 @@ IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(Platform::String^ toke
 	return toReturn;
 }
 
-IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(const char* path) const {
+IStorageItem^ WinUWPFilesystemNode::getItemFromAccessList(Common::String &path) const {
 	return getItemFromAccessList(getAccessListToken(path));
 }
 
@@ -113,7 +119,7 @@ void WinUWPFilesystemNode::getAccessList(AbstractFSList &myList) const {
 	addStorageItem(myList, ApplicationData::Current->LocalFolder);
 }
 
-void WinUWPFilesystemNode::addItemsFromFolderPicker(Common::String & path) const {
+void WinUWPFilesystemNode::getPathFromFolderPicker(Common::String & path) const {
 
 	volatile bool done = false;
 
@@ -131,9 +137,8 @@ void WinUWPFilesystemNode::addItemsFromFolderPicker(Common::String & path) const
 			cancel_current_task();
 			path = "";
 		}
-		char* p = toAscii(folder->Path->Data());
-		AccessCache::StorageApplicationPermissions::FutureAccessList->AddOrReplace(getAccessListToken(p), folder);
-		path = Common::String(p);
+		path = Common::String(toAscii(folder->Path->Data()));
+		AccessCache::StorageApplicationPermissions::FutureAccessList->AddOrReplace(getAccessListToken(path), folder);
 		done = true;
 	});
 
@@ -158,7 +163,7 @@ void WinUWPFilesystemNode::setFlags() {
 	const char *start = _path.c_str();
 
 	//We are first trying to get the item from FutureAccessList
-	IStorageItem^ item = getItemFromAccessList(start);
+	IStorageItem^ item = getItemFromAccessList(_path);
 
 	//if that fails, we are trying to fetch the item directly
 	if (item == nullptr) {
@@ -211,8 +216,6 @@ void WinUWPFilesystemNode::setFlags() {
 		_isPseudoRoot = false;
 		return;
 	}
-
-	_path = "";
 }
 
 Common::String WinUWPFilesystemNode::getPath() const
@@ -285,7 +288,7 @@ bool WinUWPFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, bo
 AbstractFSNode *WinUWPFilesystemNode::getParent() const {
 	if (_isPseudoRoot) {
 		Common::String path;
-		addItemsFromFolderPicker(path);
+		getPathFromFolderPicker(path);
 		if (!path.empty()) {
 			new WinUWPFilesystemNode(path);
 		}			

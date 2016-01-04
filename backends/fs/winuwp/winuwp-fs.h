@@ -17,12 +17,12 @@ private:
 	void addStorageItem(AbstractFSList & myList, IStorageItem ^ item) const;
 	void addStorageItems(AbstractFSList & myList, IVectorView<IStorageItem^>^ items) const;
 
-	Platform::String ^ getAccessListToken(const char * path) const;
+	Platform::String ^ getAccessListToken(const Common::String& path) const;
 	void getAccessList(AbstractFSList & myList) const;
-	//void addItemsFromFolderPicker(AbstractFSList & myList) const;
-	void addItemsFromFolderPicker(Common::String& path) const;
-	IStorageItem ^ getItemFromAccessList(const char * path) const;
+	void getPathFromFolderPicker(Common::String& path) const;
+	IStorageItem ^ getItemFromAccessList(Common::String & path) const;
 	IStorageItem ^ getItemFromAccessList(Platform::String ^ token) const;
+
 
 protected:
 	Common::String _displayName;
@@ -52,7 +52,7 @@ public:
 	virtual Common::WriteStream *createWriteStream();
 
 	static void createDir(StorageFolder^ dir, Platform::String ^subDir);
-
+	
 		
 	/**
 	* Converts a Unicode string to Ascii format.
