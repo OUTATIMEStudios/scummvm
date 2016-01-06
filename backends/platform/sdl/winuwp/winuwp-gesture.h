@@ -21,6 +21,8 @@ private:
 	void Init();
 
 	void OnRightTab(GestureRecognizer^ sender, RightTappedEventArgs^ e);
+	void OnTapped(GestureRecognizer^ sender, TappedEventArgs^ e);
+
 	void OnManipulationStarted(GestureRecognizer^ sender, ManipulationStartedEventArgs^ e);
 	void OnManipulationUpdated(GestureRecognizer^ sender, ManipulationUpdatedEventArgs^ e);
 	void OnManipulationCompleted(GestureRecognizer^ sender, ManipulationCompletedEventArgs^ e);

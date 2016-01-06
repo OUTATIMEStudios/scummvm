@@ -18,8 +18,10 @@ void WinUWPGesture::Init()
 	_eventMan = g_system->getEventManager();
 
 	_recognizer = ref new GestureRecognizer();
-	_recognizer->GestureSettings = GestureSettings::RightTap | GestureSettings::ManipulationTranslateX | GestureSettings::ManipulationTranslateY | GestureSettings::ManipulationScale;
+	_recognizer->GestureSettings = GestureSettings::RightTap | GestureSettings::ManipulationTranslateX | GestureSettings::ManipulationTranslateY | GestureSettings::ManipulationScale | GestureSettings::DoubleTap;
+	
 	_recognizer->RightTapped += ref new TypedEventHandler<GestureRecognizer^, RightTappedEventArgs^>(this, &WinUWPGesture::OnRightTab);
+	_recognizer->Tapped += ref new TypedEventHandler<GestureRecognizer^, TappedEventArgs^>(this, &WinUWPGesture::OnTapped);
 
 	_recognizer->ManipulationStarted += ref new TypedEventHandler<GestureRecognizer^, ManipulationStartedEventArgs^>(this, &WinUWPGesture::OnManipulationStarted);
 	_recognizer->ManipulationUpdated += ref new TypedEventHandler<GestureRecognizer^, ManipulationUpdatedEventArgs^>(this, &WinUWPGesture::OnManipulationUpdated);
@@ -58,13 +60,13 @@ void WinUWPGesture::OnManipulationCompleted(GestureRecognizer^ sender, Manipulat
 		return;
 	}
 
-	if (e->Velocities.Expansion < -0.5) {
+	if (e->Cumulative.Expansion < -100) {
 		event.type = Common::EVENT_MAINMENU;
 		_eventMan->pushEvent(event);
 		return;
 	}
 
-	if (e->Velocities.Expansion > 0.5) {
+	if (e->Cumulative.Expansion > 100) {
 		event.type = Common::EVENT_VIRTUAL_KEYBOARD;
 		_eventMan->pushEvent(event);
 		return;
@@ -90,6 +92,22 @@ void WinUWPGesture::OnRightTab(GestureRecognizer^ sender, RightTappedEventArgs^ 
 	_eventMan->pushEvent(event);
 	event.type = Common::EVENT_RBUTTONUP;
 	_eventMan->pushEvent(event);
+}
+
+void WinUWPGesture::OnTapped(GestureRecognizer ^ sender, TappedEventArgs ^ e)
+{
+	if (e->TapCount > 1) {
+		Common::Event event;
+		event.mouse = _eventMan->getMousePos();
+		event.type = Common::EVENT_LBUTTONDOWN;
+		_eventMan->pushEvent(event);
+		event.type = Common::EVENT_LBUTTONUP;
+		_eventMan->pushEvent(event);
+		event.type = Common::EVENT_LBUTTONDOWN;
+		_eventMan->pushEvent(event);
+		event.type = Common::EVENT_LBUTTONUP;
+		_eventMan->pushEvent(event);
+	}
 }
 
 void WinUWPGesture::OnPointerPressed(CoreWindow^ sender, PointerEventArgs^ e)
