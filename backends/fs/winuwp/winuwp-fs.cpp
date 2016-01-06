@@ -20,13 +20,19 @@ WinUWPFilesystemNode::WinUWPFilesystemNode() {
 	_isReadonly = true;
 	_isDirectory = true;
 	_isPseudoRoot = true;
+	_parent = 0;
+}
+
+WinUWPFilesystemNode::~WinUWPFilesystemNode()
+{
+	_parent = 0;
 }
 
 WinUWPFilesystemNode::WinUWPFilesystemNode(const Common::String &path) {
+	_parent = 0;
 	_path = path;
 	setFlags();
 }
-
 char* WinUWPFilesystemNode::toAscii(const wchar_t *str) {
 	static char asciiString[MAX_PATH];
 	WideCharToMultiByte(CP_ACP, 0, str, wcslen(str) + 1, asciiString, sizeof(asciiString), NULL, NULL);
@@ -99,7 +105,8 @@ void WinUWPFilesystemNode::addStorageItem(AbstractFSList &myList, IStorageItem^ 
 	node._isValid = true;
 	node._isDirectory = (item->Attributes & FileAttributes::Directory) == FileAttributes::Directory;
 	node._isReadonly = (item->Attributes & FileAttributes::ReadOnly) == FileAttributes::ReadOnly;
-	node._isPseudoRoot = false;
+	node._isPseudoRoot = false;	
+	node._parent = new WinUWPFilesystemNode(*this);
 
 	myList.push_back(new WinUWPFilesystemNode(node));
 }
@@ -286,11 +293,16 @@ bool WinUWPFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, bo
 }
 
 AbstractFSNode *WinUWPFilesystemNode::getParent() const {
+
+	if (_parent) {
+		return new WinUWPFilesystemNode(*_parent);
+	}
+
 	if (_isPseudoRoot) {
 		Common::String path;
 		getPathFromFolderPicker(path);
 		if (!path.empty()) {
-			new WinUWPFilesystemNode(path);
+			return new WinUWPFilesystemNode(path);
 		}			
 	} else if (!_path.empty()) {
 		const char *start = _path.c_str();

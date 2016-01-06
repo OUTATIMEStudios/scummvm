@@ -11,15 +11,14 @@ using namespace Windows::Foundation::Collections;
 class WinUWPFilesystemNode : public AbstractFSNode {
 
 private:
-	bool _isReadonly;
 	void setFlags();
 
 	void addStorageItem(AbstractFSList & myList, IStorageItem ^ item) const;
 	void addStorageItems(AbstractFSList & myList, IVectorView<IStorageItem^>^ items) const;
 
-	Platform::String ^ getAccessListToken(const Common::String& path) const;
+	Platform::String ^ getAccessListToken(const Common::String & path) const;
 	void getAccessList(AbstractFSList & myList) const;
-	void getPathFromFolderPicker(Common::String& path) const;
+	void getPathFromFolderPicker(Common::String & path) const;
 	IStorageItem ^ getItemFromAccessList(Common::String & path) const;
 	IStorageItem ^ getItemFromAccessList(Platform::String ^ token) const;
 
@@ -27,12 +26,15 @@ private:
 protected:
 	Common::String _displayName;
 	Common::String _path;
+	WinUWPFilesystemNode* _parent;
 	bool _isPseudoRoot;
 	bool _isDirectory;
 	bool _isValid;
+	bool _isReadonly;
 
 public:
 	WinUWPFilesystemNode();
+	~WinUWPFilesystemNode();
 	WinUWPFilesystemNode(const Common::String &path);
 
 	virtual bool exists() const;
