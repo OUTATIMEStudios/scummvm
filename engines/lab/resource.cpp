@@ -59,8 +59,6 @@ TextFont *Resource::getFont(const Common::String fileName) {
 	if (fileSize <= headerSize)
 		return nullptr;
 
-	_vm->updateEvents();
-
 	TextFont *textfont = new TextFont();
 	textfont->_dataLength = fileSize - headerSize;
 	textfont->_height = dataFile->readUint16LE();
@@ -76,8 +74,6 @@ TextFont *Resource::getFont(const Common::String fileName) {
 
 Common::String Resource::getText(const Common::String fileName) {
 	Common::File *dataFile = openDataFile(fileName);
-
-	_vm->updateEvents();
 
 	uint32 count = dataFile->size();
 	byte *buffer = new byte[count];
@@ -143,20 +139,26 @@ void Resource::readViews(uint16 roomNum) {
 	readView(dataFile, curRoom->_view[kDirectionWest]);
 	readRule(dataFile, curRoom->_rules);
 
-	_vm->updateEvents();
 	delete dataFile;
 }
 
 Common::String Resource::translateFileName(const Common::String filename) {
-	Common::String upperFilename = filename;
+	Common::String upperFilename;
+
+	// The DOS and Windows version aren't looking for the right file, 
+	if (!filename.compareToIgnoreCase("P:ZigInt/BLK") && (_vm->getPlatform() != Common::kPlatformAmiga))
+		upperFilename = "P:ZigInt/ZIGINT.BLK";
+	else
+		upperFilename = filename;
+
 	upperFilename.toUppercase();
 	Common::String fileNameStrFinal;
 
 	if (upperFilename.hasPrefix("P:") || upperFilename.hasPrefix("F:")) {
 		if (_vm->_isHiRes)
-			fileNameStrFinal = "GAME/SPICT/";
+			fileNameStrFinal = "SPICT/";
 		else
-			fileNameStrFinal = "GAME/PICT/";
+			fileNameStrFinal = "PICT/";
 
 		if (_vm->getPlatform() == Common::kPlatformAmiga) {
 			if (upperFilename.hasPrefix("P:")) {
@@ -167,13 +169,9 @@ Common::String Resource::translateFileName(const Common::String filename) {
 			}
 		}
 	} else if (upperFilename.hasPrefix("LAB:")) {
-		if (_vm->getPlatform() != Common::kPlatformAmiga)
-			fileNameStrFinal = "GAME/";
+		// Look inside the game folder
 	} else if (upperFilename.hasPrefix("MUSIC:")) {
-		if (_vm->getPlatform() != Common::kPlatformAmiga)
-			fileNameStrFinal = "GAME/MUSIC/";
-		else
-			fileNameStrFinal = "MUSIC/";
+		fileNameStrFinal = "MUSIC/";
 	}
 
 	if (upperFilename.contains(':')) {
@@ -184,22 +182,56 @@ Common::String Resource::translateFileName(const Common::String filename) {
 		upperFilename.deleteChar(0);
 	}
 
+	if (_vm->getPlatform() == Common::kPlatformDOS) {
+		// Some script of the DOS version uses names used in the Amiga (and Windows) version,
+		// which isn't limited to 8.3 characters. We need to parse upperFilename to detect
+		// the filename, and fix it if required so it matches a DOS filename.
+		while (upperFilename.contains('/') && upperFilename.size()) {
+			fileNameStrFinal += upperFilename[0];
+			upperFilename.deleteChar(0);
+		}
+
+		for (int i = 0; (i < 8) && upperFilename.size() && (upperFilename[0] != '.'); i++) {
+			fileNameStrFinal += upperFilename[0];
+			upperFilename.deleteChar(0);
+		}
+
+		// Remove the extra character in the filename
+		while (upperFilename.size() && (upperFilename[0] != '.'))
+			upperFilename.deleteChar(0);
+
+		// copy max 4 characters for the extension ('.foo')
+		for (int i = 0; (i < 4) && upperFilename.size(); i++) {
+			fileNameStrFinal += upperFilename[0];
+			upperFilename.deleteChar(0);
+		}
+
+		// Skip the extra characters of the extension
+		upperFilename.clear();
+	}
+
 	fileNameStrFinal += upperFilename;
 
 	return fileNameStrFinal;
 }
 
-Common::File *Resource::openDataFile(const Common::String fileName, uint32 fileHeader) {
+Common::File *Resource::openDataFile(const Common::String filename, uint32 fileHeader) {
 	Common::File *dataFile = new Common::File();
-	dataFile->open(translateFileName(fileName));
-	if (!dataFile->isOpen())
-		error("openDataFile: Couldn't open %s (%s)", translateFileName(fileName).c_str(), fileName.c_str());
+	dataFile->open(translateFileName(filename));
 
+	if (!dataFile->isOpen()) {
+		// The DOS version is known to have some missing files
+		if (_vm->getPlatform() == Common::kPlatformDOS) {
+			warning("Incomplete DOS version, skipping file %s", filename.c_str());
+			return nullptr;
+		} else
+			error("openDataFile: Couldn't open %s (%s)", translateFileName(filename).c_str(), filename.c_str());
+	}
 	if (fileHeader > 0) {
 		uint32 headerTag = dataFile->readUint32BE();
 		if (headerTag != fileHeader) {
 			dataFile->close();
-			error("openDataFile: Unexpected header in %s (%s) - expected: %d, got: %d", translateFileName(fileName).c_str(), fileName.c_str(), fileHeader, headerTag);
+			error("openDataFile: Unexpected header in %s (%s) - expected: %d, got: %d", translateFileName(filename).c_str(), filename.c_str(), fileHeader, headerTag);
 		}
 	}
 

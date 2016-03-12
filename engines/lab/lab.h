@@ -60,6 +60,7 @@ struct ViewData;
 class Anim;
 class DisplayMan;
 class EventManager;
+class Interface;
 class Image;
 class Music;
 class Resource;
@@ -81,8 +82,8 @@ enum GameFeatures {
 typedef Common::List<Button *> ButtonList;
 
 struct CrumbData {
-	uint16 _roomNum;
-	uint16 _direction;
+	uint16 _crumbRoomNum;
+	uint16 _crumbDirection;
 };
 
 #define MAX_CRUMBS          128
@@ -124,7 +125,6 @@ class LabEngine : public Engine {
 	friend class Console;
 
 private:
-	bool _interfaceOff;
 	bool _isCrumbWaiting;
 	bool _lastTooLong;
 	bool _lastPage;
@@ -187,6 +187,7 @@ public:
 	CrumbData _breadCrumbs[MAX_CRUMBS];
 	DisplayMan *_graphics;
 	EventManager *_event;
+	Interface *_interface;
 	ButtonList _invButtonList;
 	ButtonList _moveButtonList;
 	Image *_invImages[10];
@@ -223,7 +224,6 @@ public:
 	 */
 	Common::String getPictName(bool useClose);
 	uint16 getQuarters();
-	void setDirection(uint16 direction) { _direction = direction; };
 	void setQuarters(uint16 quarters);
 	void updateEvents();
 	void waitTOF();
@@ -232,6 +232,8 @@ public:
 	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canLoadGameStateCurrently();
 	bool canSaveGameStateCurrently();
+
+	bool isMainDisplay() const { return _mainDisplay; }
 
 private:
 	/**
@@ -260,9 +262,9 @@ private:
 	bool doActionRuleSub(int16 action, int16 roomNum, const CloseData *closePtr, bool allowDefaults);
 
 	/**
-	 * Checks whether the close up is one of the special case closeups.
+	 * Handles monitor closeups
 	 */
-	bool doCloseUp(const CloseData *closePtr);
+	void handleMonitorCloseup();
 
 	/**
 	 * Goes through the rules if the user tries to go forward.
@@ -282,7 +284,7 @@ private:
 	/**
 	 * Does the map processing.
 	 */
-	void doMap(uint16 curRoom);
+	void doMap();
 
 	/**
 	 * Does what's necessary for the monitor.
@@ -435,8 +437,6 @@ private:
 	 */
 	void mainGameLoop();
 	void showLab2Teaser();
-	void mayShowCrumbIndicator();
-	void mayShowCrumbIndicatorOff();
 
 	/**
 	 * Permanently flips the imagery of a button.
@@ -461,7 +461,7 @@ private:
 	/**
 	 * Processes user input.
 	 */
-	void processMonitor(const char *ntext, TextFont *monitorFont, bool isInteractive, Common::Rect textRect);
+	void processMonitor(const Common::String &ntext, TextFont *monitorFont, bool isInteractive, Common::Rect textRect);
 
 	/**
 	 * Figures out what a room's coordinates should be.
@@ -488,7 +488,6 @@ private:
 	void processAltButton(uint16 &curInv, uint16 &lastInv, uint16 buttonId, uint16 &actionMode);
 	void performAction(uint16 actionMode, Common::Point curPos, uint16 &curInv);
 
-private:
 	/**
 	 * Writes the game out to disk.
 	 */
@@ -499,6 +498,8 @@ private:
 	 */
 	bool loadGame(int slot);
 	void writeSaveGameHeader(Common::OutSaveFile *out, const Common::String &saveName);
+
+	void handleTrialWarning();
 };
 
 bool readSaveGameHeader(Common::InSaveFile *in, SaveGameHeader &header);

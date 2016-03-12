@@ -34,6 +34,7 @@
 #include "lab/dispman.h"
 #include "lab/eventman.h"
 #include "lab/image.h"
+#include "lab/interface.h"
 #include "lab/labsets.h"
 #include "lab/music.h"
 #include "lab/processroom.h"
@@ -128,9 +129,9 @@ void LabEngine::loadJournalData() {
 	_journalTextTitle = _resource->getText("Lab:Rooms/jt");
 
 	Common::File *journalFile = _resource->openDataFile("P:JImage");
-	_journalButtonList.push_back(_event->createButton( 80, _utils->vgaScaleY(162) + _utils->svgaCord(1), 0,  Common::KEYCODE_LEFT,  new Image(journalFile, this), new Image(journalFile, this)));	// back
-	_journalButtonList.push_back(_event->createButton(194, _utils->vgaScaleY(162) + _utils->svgaCord(1), 2,  Common::KEYCODE_RIGHT, new Image(journalFile, this), new Image(journalFile, this)));	// forward
-	_journalButtonList.push_back(_event->createButton(144, _utils->vgaScaleY(164) - _utils->svgaCord(1), 1, Common::KEYCODE_ESCAPE, new Image(journalFile, this), new Image(journalFile, this)));	// cancel
+	_journalButtonList.push_back(_interface->createButton( 80, _utils->vgaScaleY(162) + _utils->svgaCord(1), 0,  Common::KEYCODE_LEFT,  new Image(journalFile, this), new Image(journalFile, this)));	// back
+	_journalButtonList.push_back(_interface->createButton(194, _utils->vgaScaleY(162) + _utils->svgaCord(1), 2,  Common::KEYCODE_RIGHT, new Image(journalFile, this), new Image(journalFile, this)));	// forward
+	_journalButtonList.push_back(_interface->createButton(144, _utils->vgaScaleY(164) - _utils->svgaCord(1), 1, Common::KEYCODE_ESCAPE, new Image(journalFile, this), new Image(journalFile, this)));	// cancel
 	delete journalFile;
 
 	_anim->_noPalChange = true;
@@ -206,8 +207,8 @@ void LabEngine::drawJournal(uint16 wipenum, bool needFade) {
 	else
 		turnPage((wipenum == 1));
 
-	_event->toggleButton(_event->getButton(0), 15, (_journalPage > 0));	// back button
-	_event->toggleButton(_event->getButton(2), 15, (!_lastPage));	// forward button
+	_interface->toggleButton(_interface->getButton(0), 15, (_journalPage > 0));	// back button
+	_interface->toggleButton(_interface->getButton(2), 15, (!_lastPage));	// forward button
 
 	if (needFade)
 		_graphics->fade(true);
@@ -221,40 +222,41 @@ void LabEngine::drawJournal(uint16 wipenum, bool needFade) {
 
 void LabEngine::processJournal() {
 	while (1) {
-		// Make sure we check the music at least after every message
-		updateEvents();
 		IntuiMessage *msg = _event->getMsg();
 		if (shouldQuit()) {
 			_quitLab = true;
 			return;
 		}
 
-		if (!msg)
-			updateEvents();
-		else {
-			MessageClass msgClass  = msg->_msgClass;
+		updateEvents();
+		_graphics->screenUpdate();
+		_system->delayMillis(10);
 
-			if ((msgClass == kMessageRightClick) ||
-				((msgClass == kMessageRawKey) && (msg->_code == Common::KEYCODE_ESCAPE)))
+		if (!msg)
+			continue;
+
+		MessageClass msgClass  = msg->_msgClass;
+
+		if ((msgClass == kMessageRightClick) ||
+			((msgClass == kMessageRawKey) && (msg->_code == Common::KEYCODE_ESCAPE)))
+			return;
+		else if (msgClass == kMessageButtonUp) {
+			uint16 buttonId  = msg->_code;
+			if (buttonId == 0) {
+				if (_journalPage >= 2) {
+					_journalPage -= 2;
+					drawJournal(1, false);
+				}
+			} else if (buttonId == 1) {
 				return;
-			else if (msgClass == kMessageButtonUp) {
-				uint16 buttonId  = msg->_code;
-				if (buttonId == 0) {
-					if (_journalPage >= 2) {
-						_journalPage -= 2;
-						drawJournal(1, false);
-					}
-				} else if (buttonId == 1) {
-					return;
-				} else if (buttonId == 2) {
-					if (!_lastPage) {
-						_journalPage += 2;
-						drawJournal(2, false);
-					}
+			} else if (buttonId == 2) {
+				if (!_lastPage) {
+					_journalPage += 2;
+					drawJournal(2, false);
 				}
 			}
 		}
-	}
+	}	// while
 }
 
 void LabEngine::doJournal() {
@@ -267,11 +269,11 @@ void LabEngine::doJournal() {
 
 	updateEvents();
 	loadJournalData();
-	_event->attachButtonList(&_journalButtonList);
+	_interface->attachButtonList(&_journalButtonList);
 	drawJournal(0, true);
 	_event->mouseShow();
 	processJournal();
-	_event->attachButtonList(nullptr);
+	_interface->attachButtonList(nullptr);
 	_graphics->fade(false);
 	_event->mouseHide();
 
@@ -279,7 +281,7 @@ void LabEngine::doJournal() {
 	_blankJournal = nullptr;
 	_journalBackImage->setData(nullptr, true);
 
-	_event->freeButtonList(&_journalButtonList);
+	_interface->freeButtonList(&_journalButtonList);
 	_graphics->freeFont(&_journalFont);
 
 	_graphics->rectFill(0, 0, _graphics->_screenWidth - 1, _graphics->_screenHeight - 1, 0);
@@ -288,8 +290,6 @@ void LabEngine::doJournal() {
 
 void LabEngine::drawMonText(const char *text, TextFont *monitorFont, Common::Rect textRect, bool isinteractive) {
 	uint16 drawingToPage = 0, yspacing = 0;
-	int charsDrawn = 0;
-	const char *curText = text;
 
 	_event->mouseHide();
 
@@ -319,10 +319,10 @@ void LabEngine::drawMonText(const char *text, TextFont *monitorFont, Common::Rec
 		_graphics->rectFill(textRect, 0);
 	}
 
+	const char *curText = text;
 	while (drawingToPage < _monitorPage) {
 		updateEvents();
-		curText = text + charsDrawn;
-		charsDrawn += _graphics->flowText(monitorFont, yspacing, 0, 0, false, false, false, false, textRect, curText);
+		curText += _graphics->flowText(monitorFont, yspacing, 0, 0, false, false, false, false, textRect, curText);
 		_lastPage = (*curText == 0);
 
 		if (_lastPage)
@@ -331,16 +331,16 @@ void LabEngine::drawMonText(const char *text, TextFont *monitorFont, Common::Rec
 			drawingToPage++;
 	}
 
-	curText = text + charsDrawn;
+	curText += _graphics->flowText(monitorFont, yspacing, 2, 0, false, false, false, true, textRect, curText);
 	_lastPage = (*curText == 0);
-	_graphics->flowText(monitorFont, yspacing, 2, 0, false, false, false, true, textRect, curText);
 	_event->mouseShow();
 }
 
-void LabEngine::processMonitor(const char *ntext, TextFont *monitorFont, bool isInteractive, Common::Rect textRect) {
+void LabEngine::processMonitor(const Common::String &ntext, TextFont *monitorFont, bool isInteractive, Common::Rect textRect) {
 	Common::String startFileName = _monitorTextFilename;
 	const CloseData *startClosePtr = _closeDataPtr, *lastClosePtr[10];
 	uint16 depth = 0;
+	Common::String text = ntext;
 
 	lastClosePtr[0] = _closeDataPtr;
 
@@ -359,76 +359,82 @@ void LabEngine::processMonitor(const char *ntext, TextFont *monitorFont, bool is
 				_monitorPage = 0;
 				_monitorTextFilename = filename;
 
-				Common::String text = _resource->getText(_monitorTextFilename);
+				text = _resource->getText(_monitorTextFilename);
 				_graphics->fade(false);
 				drawMonText(text.c_str(), monitorFont, textRect, isInteractive);
 				_graphics->fade(true);
 			}
 		}
 
-		// Make sure we check the music at least after every message
-		updateEvents();
 		IntuiMessage *msg = _event->getMsg();
 		if (shouldQuit()) {
 			_quitLab = true;
 			return;
 		}
 
+		updateEvents();
+		_graphics->screenUpdate();
+		_system->delayMillis(10);
+
 		if (!msg)
-			updateEvents();
-		else {
-			MessageClass msgClass  = msg->_msgClass;
+			continue;
 
-			if ((msgClass == kMessageRightClick) ||
-				  ((msgClass == kMessageRawKey) && (msg->_code == Common::KEYCODE_ESCAPE)))
-				return;
+		MessageClass msgClass  = msg->_msgClass;
 
-			if (msgClass == kMessageLeftClick) {
-				int16 mouseX = msg->_mouse.x;
-				int16 mouseY = msg->_mouse.y;
+		if ((msgClass == kMessageRightClick) ||
+				((msgClass == kMessageRawKey) && (msg->_code == Common::KEYCODE_ESCAPE)))
+			return;
 
-				if ((mouseY >= _utils->vgaScaleY(171)) && (mouseY <= _utils->vgaScaleY(200))) {
-					if (mouseX <= _utils->vgaScaleX(31))
-						return;
+		if (msgClass == kMessageLeftClick) {
+			int16 mouseX = msg->_mouse.x;
+			int16 mouseY = msg->_mouse.y;
+
+			// Check if mouse was in button bar
+			if ((mouseY >= _utils->vgaScaleY(171)) && (mouseY <= _utils->vgaScaleY(200))) {
+				if (mouseX <= _utils->vgaScaleX(31)) {
+					// Exit button
+					return;
+				}
 					
-					if (mouseX <= _utils->vgaScaleX(59)) {
-						if (isInteractive) {
-							_monitorPage = 0;
+				if (mouseX <= _utils->vgaScaleX(59)) {
+					// Back button
+					if (isInteractive) {
+						_monitorPage = 0;
 
-							if (depth) {
-								depth--;
-								_closeDataPtr = lastClosePtr[depth];
-							}
-						} else if (_monitorPage > 0) {
-							_monitorPage = 0;
-							drawMonText(ntext, monitorFont, textRect, isInteractive);
+						if (depth) {
+							depth--;
+							_closeDataPtr = lastClosePtr[depth];
 						}
-					} else if (mouseX < _utils->vgaScaleX(259)) {
-						return;
-					} else if (mouseX <= _utils->vgaScaleX(289)) {
-						if (!_lastPage) {
-							_monitorPage += 1;
-							drawMonText(ntext, monitorFont, textRect, isInteractive);
-						}
-					} else if (_monitorPage >= 1) {
-						// mouseX is greater than 290 (scaled)
-						_monitorPage -= 1;
-						drawMonText(ntext, monitorFont, textRect, isInteractive);
+					} else if (_monitorPage > 0) {
+						_monitorPage = 0;
+						drawMonText(text.c_str(), monitorFont, textRect, isInteractive);
 					}
-				} else if (isInteractive) {
-					const CloseData *tmpClosePtr = _closeDataPtr;
-					mouseY = 64 + (mouseY / _monitorButtonHeight) * 42;
-					mouseX = 101;
-					setCurrentClose(Common::Point(mouseX, mouseY), &_closeDataPtr, false);
+				} else if (mouseX < _utils->vgaScaleX(259)) {
+					// empty region; ignore
+				} else if (mouseX <= _utils->vgaScaleX(289)) {
+					// Page down button
+					if (!_lastPage) {
+						_monitorPage += 1;
+						drawMonText(text.c_str(), monitorFont, textRect, isInteractive);
+					}
+				} else if (_monitorPage >= 1) {
+					// Page up button
+					_monitorPage -= 1;
+					drawMonText(text.c_str(), monitorFont, textRect, isInteractive);
+				}
+			} else if (isInteractive) {
+				const CloseData *tmpClosePtr = _closeDataPtr;
+				mouseY = 64 + (mouseY / _monitorButtonHeight) * 42;
+				mouseX = 101;
+				setCurrentClose(Common::Point(mouseX, mouseY), &_closeDataPtr, false);
 
-					if (tmpClosePtr != _closeDataPtr) {
-						lastClosePtr[depth] = tmpClosePtr;
-						depth++;
-					}
+				if (tmpClosePtr != _closeDataPtr) {
+					lastClosePtr[depth] = tmpClosePtr;
+					depth++;
 				}
 			}
 		}
-	}
+	}	// while
 }
 
 void LabEngine::doMonitor(const Common::String background, const Common::String textfile, bool isinteractive, Common::Rect textRect) {
@@ -456,7 +462,7 @@ void LabEngine::doMonitor(const Common::String background, const Common::String 
 	drawMonText(ntext.c_str(), monitorFont, scaledRect, isinteractive);
 	_event->mouseShow();
 	_graphics->fade(true);
-	processMonitor(ntext.c_str(), monitorFont, isinteractive, scaledRect);
+	processMonitor(ntext, monitorFont, isinteractive, scaledRect);
 	_graphics->fade(false);
 	_event->mouseHide();
 	_graphics->freeFont(&monitorFont);

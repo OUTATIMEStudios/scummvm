@@ -28,11 +28,11 @@
  *
  */
 
+#include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/error.h"
 
 #include "engines/util.h"
-#include "gui/message.h"
 
 #include "lab/lab.h"
 
@@ -41,6 +41,7 @@
 #include "lab/dispman.h"
 #include "lab/eventman.h"
 #include "lab/image.h"
+#include "lab/interface.h"
 #include "lab/music.h"
 #include "lab/processroom.h"
 #include "lab/resource.h"
@@ -55,8 +56,8 @@ LabEngine::LabEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	_isHiRes = false;
 	_roomNum = -1;
 	for (int i = 0; i < MAX_CRUMBS; i++) {
-		_breadCrumbs[i]._roomNum = 0;
-		_breadCrumbs[i]._direction = kDirectionNorth;
+		_breadCrumbs[i]._crumbRoomNum = 0;
+		_breadCrumbs[i]._crumbDirection = kDirectionNorth;
 	}
 
 	_numCrumbs = 0;
@@ -77,6 +78,7 @@ LabEngine::LabEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	_maxRooms = 0;
 
 	_event = nullptr;
+	_interface = nullptr;
 	_resource = nullptr;
 	_music = nullptr;
 	_anim = nullptr;
@@ -91,7 +93,6 @@ LabEngine::LabEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	_journalBackImage = nullptr;
 
 	_lastTooLong = false;
-	_interfaceOff = false;
 	_alternate = false;
 
 	for (int i = 0; i < 20; i++)
@@ -129,6 +130,9 @@ LabEngine::LabEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	for (int i = 0; i < 20; i++)
 		_highPalette[i] = 0;
 	_introPlaying = false;
+
+	const Common::FSNode gameDataDir(ConfMan.get("path"));
+	SearchMan.addSubDirectoryMatching(gameDataDir, "game", 0, 4);
 }
 
 LabEngine::~LabEngine() {
@@ -142,6 +146,7 @@ LabEngine::~LabEngine() {
 	delete _conditions;
 	delete _roomsFound;
 	delete _event;
+	delete _interface;
 	delete _resource;
 	delete _music;
 	delete _anim;
@@ -158,6 +163,7 @@ Common::Error LabEngine::run() {
 	else
 		initGraphics(640, 480, true);
 
+	_interface = new Interface(this);
 	_event = new EventManager(this);
 	_resource = new Resource(this);
 	_music = new Music(this);
@@ -167,40 +173,6 @@ Common::Error LabEngine::run() {
 	_utils = new Utils(this);
 	_console = new Console(this);
 	_journalBackImage = new Image(this);
-
-	if (getPlatform() == Common::kPlatformWindows) {
-		// Check if this is the Wyrmkeep trial
-		Common::File roomFile;
-		bool knownVersion = true;
-		bool roomFileOpened = roomFile.open("game/rooms/48");
-
-		if (!roomFileOpened)
-			knownVersion = false;
-		else if (roomFile.size() != 892)
-			knownVersion = false;
-		else {
-			roomFile.seek(352);
-			byte checkByte = roomFile.readByte();
-			if (checkByte == 0x00) {
-				// Full Windows version
-			} else if (checkByte == 0x80) {
-				// Wyrmkeep trial version
-				_extraGameFeatures = GF_WINDOWS_TRIAL;
-
-				GUI::MessageDialog trialMessage("This is a trial Windows version of the game. To play the full version, you will need to use the original interpreter and purchase a key from Wyrmkeep");
-				trialMessage.runModal();
-			} else {
-				knownVersion = false;
-			}
-
-			roomFile.close();
-
-			if (!knownVersion) {
-				warning("Unknown Windows version found, please report this version to the ScummVM team");
-				return Common::kNoGameDataFoundError;
-			}
-		}
-	}
 
 	go();
 
@@ -225,10 +197,7 @@ void LabEngine::changeVolume(int delta) {
 }
 
 void LabEngine::waitTOF() {
-	_system->copyRectToScreen(_graphics->_displayBuffer, _graphics->_screenWidth, 0, 0, _graphics->_screenWidth, _graphics->_screenHeight);
-	_system->updateScreen();
-
-	_event->processInput();
+	_graphics->screenUpdate();
 
 	uint32 now;
 
@@ -240,17 +209,11 @@ void LabEngine::waitTOF() {
 
 void LabEngine::updateEvents() {
 	_event->processInput();
-	_event->updateMouse();
+	_interface->handlePressedButton();
 }
 
 Common::Error LabEngine::loadGameState(int slot) {
 	bool result = loadGame(slot);
-	_curFileName = " ";
-	_closeDataPtr = nullptr;
-	_mainDisplay = true;
-	_followingCrumbs = false;
-	_event->simulateEvent();
-	_graphics->_longWinInFront = false;
 	return (result) ? Common::kNoError : Common::kUserCanceled;
 }
 
@@ -260,11 +223,11 @@ Common::Error LabEngine::saveGameState(int slot, const Common::String &desc) {
 }
 
 bool LabEngine::canLoadGameStateCurrently() {
-	return !_anim->isPlaying() && !_introPlaying;
+	return !_introPlaying;
 }
 
 bool LabEngine::canSaveGameStateCurrently() {
-	return !_anim->isPlaying() && !_introPlaying;
+	return !_introPlaying;
 }
 
 } // End of namespace Lab

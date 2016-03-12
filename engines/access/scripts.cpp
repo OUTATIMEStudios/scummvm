@@ -771,6 +771,11 @@ void Scripts::cmdSpecial() {
 	if (_specialFunction == 1) {
 		_vm->_screen->restorePalette();
 		_vm->_room->_function = FN_RELOAD;
+
+		// WORKAROUND: This fixes scene establishment being re-shown
+		// when restoring savegames in rooms which have one
+		if (_vm->getGameID() == GType_Amazon && !_vm->isCD())
+			_vm->_establishTable[p2] = true;
 	}
 }
 
@@ -1000,10 +1005,7 @@ void Scripts::cmdFreeSound() {
 		} while (!_vm->shouldQuit() && sound.isSFXPlaying());
 
 		// Free the sounds
-		while (sound._soundTable.size() > 0) {
-			delete sound._soundTable[0]._res;
-			sound._soundTable.remove_at(0);
-		}
+		sound.freeSounds();
 	}
 }
 

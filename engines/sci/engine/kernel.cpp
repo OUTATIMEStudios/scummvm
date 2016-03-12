@@ -35,6 +35,9 @@ namespace Sci {
 
 Kernel::Kernel(ResourceManager *resMan, SegManager *segMan)
 	: _resMan(resMan), _segMan(segMan), _invalid("<invalid>") {
+#ifdef ENABLE_SCI32
+	_kernelFunc_StringId = 0;
+#endif
 }
 
 Kernel::~Kernel() {
@@ -603,6 +606,10 @@ void Kernel::mapFunctions() {
 		}
 
 #ifdef ENABLE_SCI32
+		if (kernelName == "String") {
+			_kernelFunc_StringId = id;
+		}
+
 		// HACK: Phantasmagoria Mac uses a modified kDoSound (which *nothing*
 		// else seems to use)!
 		if (g_sci->getPlatform() == Common::kPlatformMacintosh && g_sci->getGameId() == GID_PHANTASMAGORIA && kernelName == "DoSound") {
@@ -842,7 +849,7 @@ void Kernel::loadKernelNames(GameFeatures *features) {
 			// In the Windows version of KQ6 CD, the empty kSetSynonyms
 			// function has been replaced with kPortrait. In KQ6 Mac,
 			// kPlayBack has been replaced by kShowMovie.
-			if (g_sci->getPlatform() == Common::kPlatformWindows)
+			if ((g_sci->getPlatform() == Common::kPlatformWindows) || (g_sci->forceHiresGraphics()))
 				_kernelNames[0x26] = "Portrait";
 			else if (g_sci->getPlatform() == Common::kPlatformMacintosh)
 				_kernelNames[0x84] = "ShowMovie";

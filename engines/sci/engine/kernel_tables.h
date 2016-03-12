@@ -60,13 +60,14 @@ struct SciKernelMapSubEntry {
 #define SCI_SUBOPENTRY_TERMINATOR { SCI_VERSION_NONE, SCI_VERSION_NONE, 0, NULL, NULL, NULL, NULL }
 
 
-#define SIG_SCIALL         SCI_VERSION_NONE, SCI_VERSION_NONE
-#define SIG_SCI0           SCI_VERSION_NONE, SCI_VERSION_01
-#define SIG_SCI1           SCI_VERSION_1_EGA_ONLY, SCI_VERSION_1_LATE
-#define SIG_SCI11          SCI_VERSION_1_1, SCI_VERSION_1_1
-#define SIG_SINCE_SCI11    SCI_VERSION_1_1, SCI_VERSION_NONE
-#define SIG_SINCE_SCI21    SCI_VERSION_2_1_EARLY, SCI_VERSION_3
-#define SIG_UNTIL_SCI21MID SCI_VERSION_2_1_EARLY, SCI_VERSION_2_1_MIDDLE
+#define SIG_SCIALL          SCI_VERSION_NONE, SCI_VERSION_NONE
+#define SIG_SCI0            SCI_VERSION_NONE, SCI_VERSION_01
+#define SIG_SCI1            SCI_VERSION_1_EGA_ONLY, SCI_VERSION_1_LATE
+#define SIG_SCI11           SCI_VERSION_1_1, SCI_VERSION_1_1
+#define SIG_SINCE_SCI11     SCI_VERSION_1_1, SCI_VERSION_NONE
+#define SIG_SINCE_SCI21     SCI_VERSION_2_1_EARLY, SCI_VERSION_3
+#define SIG_UNTIL_SCI21MID  SCI_VERSION_2, SCI_VERSION_2_1_MIDDLE
+#define SIG_SINCE_SCI21LATE SCI_VERSION_2_1_LATE, SCI_VERSION_3
 
 #define SIG_SCI16          SCI_VERSION_NONE, SCI_VERSION_1_1
 #define SIG_SCI32          SCI_VERSION_2, SCI_VERSION_NONE
@@ -200,31 +201,42 @@ static const SciKernelMapSubEntry kGraph_subops[] = {
 
 //    version,         subId, function-mapping,                    signature,              workarounds
 static const SciKernelMapSubEntry kPalVary_subops[] = {
-	{ SIG_SINCE_SCI21,     0, MAP_CALL(PalVaryInit),               "ii(i)(i)(i)",          NULL },
-	{ SIG_SCIALL,          0, MAP_CALL(PalVaryInit),               "ii(i)(i)",             NULL },
-	{ SIG_SCIALL,          1, MAP_CALL(PalVaryReverse),            "(i)(i)(i)",            NULL },
-	{ SIG_SCIALL,          2, MAP_CALL(PalVaryGetCurrentStep),     "",                     NULL },
-	{ SIG_SCIALL,          3, MAP_CALL(PalVaryDeinit),             "",                     NULL },
-	{ SIG_SCIALL,          4, MAP_CALL(PalVaryChangeTarget),       "i",                    NULL },
-	{ SIG_SCIALL,          5, MAP_CALL(PalVaryChangeTicks),        "i",                    NULL },
-	{ SIG_SCIALL,          6, MAP_CALL(PalVaryPauseResume),        "i",                    NULL },
+	{ SIG_SCI16,           0, MAP_CALL(PalVaryInit),               "ii(i)(i)",             NULL },
+	{ SIG_SCI16,           1, MAP_CALL(PalVaryReverse),            "(i)(i)(i)",            NULL },
+	{ SIG_SCI16,           2, MAP_CALL(PalVaryGetCurrentStep),     "",                     NULL },
+	{ SIG_SCI16,           3, MAP_CALL(PalVaryDeinit),             "",                     NULL },
+	{ SIG_SCI16,           4, MAP_CALL(PalVaryChangeTarget),       "i",                    NULL },
+	{ SIG_SCI16,           5, MAP_CALL(PalVaryChangeTicks),        "i",                    NULL },
+	{ SIG_SCI16,           6, MAP_CALL(PalVaryPauseResume),        "i",                    NULL },
 #ifdef ENABLE_SCI32
-	{ SIG_SCI32,           8, MAP_CALL(PalVaryUnknown),            "i",                    NULL },
-	{ SIG_SCI32,           9, MAP_CALL(PalVaryUnknown2),           "i",                    NULL },
+	{ SIG_SCI32,           0, MAP_CALL(PalVarySetVary),            "i(i)(i)(ii)",          NULL },
+	{ SIG_SCI32,           1, MAP_CALL(PalVarySetPercent),         "(i)(i)",               NULL },
+	{ SIG_SCI32,           2, MAP_CALL(PalVaryGetPercent),         "",                     NULL },
+	{ SIG_SCI32,           3, MAP_CALL(PalVaryOff),                "",                     NULL },
+	{ SIG_SCI32,           4, MAP_CALL(PalVaryMergeTarget),        "i",                    NULL },
+	{ SIG_SCI32,           5, MAP_CALL(PalVarySetTime),            "i",                    NULL },
+	{ SIG_SCI32,           6, MAP_CALL(PalVaryPauseResume),        "i",                    NULL },
+	{ SIG_SCI32,           7, MAP_CALL(PalVarySetTarget),          "i",                    NULL },
+	{ SIG_SCI32,           8, MAP_CALL(PalVarySetStart),           "i",                    NULL },
+	{ SIG_SCI32,           9, MAP_CALL(PalVaryMergeStart),         "i",                    NULL },
 #endif
 	SCI_SUBOPENTRY_TERMINATOR
 };
 
 //    version,         subId, function-mapping,                    signature,              workarounds
 static const SciKernelMapSubEntry kPalette_subops[] = {
-	{ SIG_SCIALL,          1, MAP_CALL(PaletteSetFromResource),    "i(i)",                 NULL },
-	{ SIG_SCIALL,          2, MAP_CALL(PaletteSetFlag),            "iii",                  NULL },
-	{ SIG_SCIALL,          3, MAP_CALL(PaletteUnsetFlag),          "iii",                  kPaletteUnsetFlag_workarounds },
-	{ SIG_SCIALL,          4, MAP_CALL(PaletteSetIntensity),       "iii(i)",               NULL },
-	{ SIG_SCIALL,          5, MAP_CALL(PaletteFindColor),          "iii",                  NULL },
-	{ SIG_SCIALL,          6, MAP_CALL(PaletteAnimate),            "i*",                   NULL },
-	{ SIG_SCIALL,          7, MAP_CALL(PaletteSave),               "",                     NULL },
-	{ SIG_SCIALL,          8, MAP_CALL(PaletteRestore),            "[r0]",                 NULL },
+	{ SIG_SCIALL,         1, MAP_CALL(PaletteSetFromResource),    "i(i)",                 NULL },
+	{ SIG_SCI16,          2, MAP_CALL(PaletteSetFlag),            "iii",                  NULL },
+	{ SIG_SCI16,          3, MAP_CALL(PaletteUnsetFlag),          "iii",                  kPaletteUnsetFlag_workarounds },
+#ifdef ENABLE_SCI32
+	{ SIG_SCI32,          2, MAP_CALL(PaletteSetFade),            "iii",                  NULL },
+	{ SIG_SCI32,          3, MAP_CALL(PaletteFindColor),          "iii",                  NULL },
+#endif
+	{ SIG_SCI16,          4, MAP_CALL(PaletteSetIntensity),       "iii(i)",               NULL },
+	{ SIG_SCI16,          5, MAP_CALL(PaletteFindColor),          "iii",                  NULL },
+	{ SIG_SCI16,          6, MAP_CALL(PaletteAnimate),            "i*",                   NULL },
+	{ SIG_SCI16,          7, MAP_CALL(PaletteSave),               "",                     NULL },
+	{ SIG_SCI16,          8, MAP_CALL(PaletteRestore),            "[r0]",                 NULL },
 	SCI_SUBOPENTRY_TERMINATOR
 };
 
@@ -310,15 +322,16 @@ static const SciKernelMapSubEntry kString_subops[] = {
 	{ SIG_SCI32,           6, MAP_CALL(StringCopy),                "[or]i[or]ii",          NULL },
 	{ SIG_SCI32,           7, MAP_CALL(StringCompare),             "[or][or](i)",          NULL },
 
-	// =SCI2.1 Early and SCI2.1 Middle=
+	// =SCI2, SCI2.1 Early and SCI2.1 Middle=
 	{ SIG_UNTIL_SCI21MID,  8, MAP_CALL(StringDup),                 "[or]",                 NULL },
-	{ SIG_UNTIL_SCI21MID,  9, MAP_CALL(StringGetData),             "[or]",                 NULL },
+	// TODO: This gets called with null references in Torin. Check if this is correct, or it's
+	// caused by missing functionality
+	{ SIG_UNTIL_SCI21MID,  9, MAP_CALL(StringGetData),             "[or0]",                NULL },
 	{ SIG_UNTIL_SCI21MID, 10, MAP_CALL(StringLen),                 "[or]",                 NULL },
 	{ SIG_UNTIL_SCI21MID, 11, MAP_CALL(StringPrintf),              "[or](.*)",             NULL },
 	{ SIG_UNTIL_SCI21MID, 12, MAP_CALL(StringPrintfBuf),           "[or](.*)",             NULL },
 	{ SIG_UNTIL_SCI21MID, 13, MAP_CALL(StringAtoi),                "[or]",                 NULL },
-	// exact functionality of Trim is unknown atm
-	{ SIG_UNTIL_SCI21MID, 14, MAP_CALL(StringTrim),                "[or]",                 NULL },
+	{ SIG_UNTIL_SCI21MID, 14, MAP_CALL(StringTrim),                "[or]i",                NULL },
 	{ SIG_UNTIL_SCI21MID, 15, MAP_CALL(StringUpper),               "[or]",                 NULL },
 	{ SIG_UNTIL_SCI21MID, 16, MAP_CALL(StringLower),               "[or]",                 NULL },
 	// the following 2 are unknown atm (happen in Phantasmagoria)
@@ -327,15 +340,15 @@ static const SciKernelMapSubEntry kString_subops[] = {
 	{ SIG_UNTIL_SCI21MID, 18, MAP_CALL(StringTrnExclude),          "[or]",                 NULL },
 
 	// SCI2.1 Late + SCI3 - kStringDup + kStringGetData were removed
-	{ SIG_SCI32,           8, MAP_CALL(StringLen),                 "[or]",                 NULL },
-	{ SIG_SCI32,           9, MAP_CALL(StringPrintf),              "[or](.*)",             NULL },
-	{ SIG_SCI32,          10, MAP_CALL(StringPrintfBuf),           "[or](.*)",             NULL },
-	{ SIG_SCI32,          11, MAP_CALL(StringAtoi),                "[or]",                 NULL },
-	{ SIG_SCI32,          12, MAP_CALL(StringTrim),                "[or]",                 NULL },
-	{ SIG_SCI32,          13, MAP_CALL(StringUpper),               "[or]",                 NULL },
-	{ SIG_SCI32,          14, MAP_CALL(StringLower),               "[or]",                 NULL },
-	{ SIG_SCI32,          15, MAP_CALL(StringTrn),                 "[or]",                 NULL },
-	{ SIG_SCI32,          16, MAP_CALL(StringTrnExclude),          "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE, 8, MAP_CALL(StringLen),                 "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE, 9, MAP_CALL(StringPrintf),              "[or](.*)",             NULL },
+	{ SIG_SINCE_SCI21LATE,10, MAP_CALL(StringPrintfBuf),           "[or](.*)",             NULL },
+	{ SIG_SINCE_SCI21LATE,11, MAP_CALL(StringAtoi),                "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE,12, MAP_CALL(StringTrim),                "[or]i",                NULL },
+	{ SIG_SINCE_SCI21LATE,13, MAP_CALL(StringUpper),               "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE,14, MAP_CALL(StringLower),               "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE,15, MAP_CALL(StringTrn),                 "[or]",                 NULL },
+	{ SIG_SINCE_SCI21LATE,16, MAP_CALL(StringTrnExclude),          "[or]",                 NULL },
 	SCI_SUBOPENTRY_TERMINATOR
 };
 
@@ -614,11 +627,6 @@ static SciKernelMapEntry s_kernelMap[] = {
 	{ MAP_DUMMY(InputText),        SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
 	{ MAP_DUMMY(TextWidth),        SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
 	{ MAP_DUMMY(PointSize),        SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
-	// SetScroll is called by script 64909, Styler::doit(), but it doesn't seem to
-	// be used at all (plus, it was then changed to a dummy function in SCI3).
-	// Since this is most likely unused, and we got no test case, error out when
-	// it is called in order to find an actual call to it.
-	{ MAP_DUMMY(SetScroll),        SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
 
 	// SCI2.1 Kernel Functions
 	{ MAP_CALL(CD),                SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
@@ -694,13 +702,15 @@ static SciKernelMapEntry s_kernelMap[] = {
 	// MovePlaneItems - used by SQ6 to scroll through the inventory via the up/down buttons
 	// SetPalStyleRange - 2 integer parameters, start and end. All styles from start-end
 	//   (inclusive) are set to 0
-	// MorphOn - used by SQ6, script 900, the datacorder reprogramming puzzle (from room 270)
+	{ MAP_CALL(SetPalStyleRange),   SIG_EVERYWHERE,           "ii",                   NULL,            NULL },
+
+	{ MAP_CALL(MorphOn),            SIG_EVERYWHERE,           "",                     NULL,            NULL },
 
 	// SCI3 Kernel Functions
-	{ MAP_CALL(PlayDuck),         SIG_EVERYWHERE,           "(.*)",                  NULL,            NULL },
+	{ MAP_CALL(PlayDuck),           SIG_EVERYWHERE,           "(.*)",                 NULL,            NULL },
 #endif
 
-	{ NULL, NULL,                  SIG_EVERYWHERE,           NULL,                    NULL,            NULL }
+	{ NULL, NULL,                   SIG_EVERYWHERE,           NULL,                   NULL,            NULL }
 };
 
 /** Default kernel name table. */

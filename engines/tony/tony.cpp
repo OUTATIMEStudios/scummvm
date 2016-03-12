@@ -82,6 +82,7 @@ TonyEngine::TonyEngine(OSystem *syst, const TonyGameDescription *gameDesc) : Eng
 	_bQuitNow = false;
 	_bTimeFreezed = false;
 	_nTimeFreezed = 0;
+	_vdbCodec = FPCODEC_UNKNOWN;
 }
 
 TonyEngine::~TonyEngine() {
@@ -573,18 +574,26 @@ void TonyEngine::loadState(CORO_PARAM, int n) {
 }
 
 bool TonyEngine::openVoiceDatabase() {
-	char id[4];
-	uint32 numfiles;
-
 	// Open the voices database
 	if (!_vdbFP.open("voices.vdb"))
-		return false;
+		if (!_vdbFP.open("voices.mdb"))
+			if (!_vdbFP.open("voices.odb"))
+				if (!_vdbFP.open("voices.fdb"))
+					return false;
 
 	_vdbFP.seek(-8, SEEK_END);
-	numfiles = _vdbFP.readUint32LE();
-	_vdbFP.read(id, 4);
+	uint32 numfiles = _vdbFP.readUint32LE();
+	int32 id = _vdbFP.readUint32BE();
 
-	if (id[0] != 'V' || id[1] != 'D' || id[2] != 'B' || id[3] != '1') {
+	if (id == MKTAG('V', 'D', 'B', '1'))
+		_vdbCodec = FPCODEC_ADPCM;
+	else if (id == MKTAG('M', 'D', 'B', '1'))
+		_vdbCodec = FPCODEC_MP3;
+	else if (id == MKTAG('O', 'D', 'B', '1'))
+		_vdbCodec = FPCODEC_OGG;
+	else if (id == MKTAG('F', 'D', 'B', '1'))
+		_vdbCodec = FPCODEC_FLAC;
+	else {
 		_vdbFP.close();
 		return false;
 	}

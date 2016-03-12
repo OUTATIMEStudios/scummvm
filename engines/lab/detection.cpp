@@ -61,7 +61,7 @@ static const ADGameDescription labDescriptions[] = {
 		},
 		Common::EN_ANY,
 		Common::kPlatformDOS,
-		Lab::GF_LOWRES,
+		Lab::GF_LOWRES | ADGF_NO_FLAGS,
 		GUIO0()
 	},
 	{
@@ -84,7 +84,7 @@ static const ADGameDescription labDescriptions[] = {
 		AD_ENTRY1s("doors", "7bf458df6ec30cc8ef4665e4d7c77f59", 2537), // game/doors
 		Common::EN_ANY,
 		Common::kPlatformAmiga,
-		Lab::GF_LOWRES,
+		Lab::GF_LOWRES | ADGF_UNSTABLE,
 		GUIO0()
 	},
 	AD_TABLE_END_MARKER
@@ -165,7 +165,7 @@ SaveStateList LabMetaEngine::listSaves(const char *target) const {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Lab::SaveGameHeader header;
 	Common::String pattern = target;
-	pattern += ".???";
+	pattern += ".###";
 
 	Common::StringArray filenames;
 	filenames = saveFileMan->listSavefiles(pattern.c_str());
@@ -202,7 +202,7 @@ void LabMetaEngine::removeSaveState(const char *target, int slot) const {
 
 	Common::StringArray filenames;
 	Common::String pattern = target;
-	pattern += ".???";
+	pattern += ".###";
 	filenames = saveFileMan->listSavefiles(pattern.c_str());
 	Common::sort(filenames.begin(), filenames.end());   // Sort (hopefully ensuring we are sorted numerically..)
 

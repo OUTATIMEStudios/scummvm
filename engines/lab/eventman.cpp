@@ -30,11 +30,14 @@
 
 #include "common/events.h"
 
+#include "graphics/cursorman.h"
+
 #include "lab/lab.h"
 
 #include "lab/dispman.h"
 #include "lab/eventman.h"
 #include "lab/image.h"
+#include "lab/interface.h"
 
 namespace Lab {
 
@@ -62,81 +65,24 @@ static const byte mouseData[] = {
 EventManager::EventManager(LabEngine *vm) : _vm(vm) {
 	_leftClick = false;
 	_rightClick = false;
-
-	_lastButtonHit = nullptr;
-	_screenButtonList = nullptr;
-	_hitButton = nullptr;
+	_buttonHit = false;
 	_mousePos = Common::Point(0, 0);
 	_keyPressed = Common::KEYCODE_INVALID;
 }
 
-Button *EventManager::checkButtonHit(ButtonList *buttonList, Common::Point pos) {
-	for (ButtonList::iterator buttonItr = buttonList->begin(); buttonItr != buttonList->end(); ++buttonItr) {
-		Button *button = *buttonItr;
-		Common::Rect buttonRect(button->_x, button->_y, button->_x + button->_image->_width - 1, button->_y + button->_image->_height - 1);
-
-		if (buttonRect.contains(pos) && button->_isEnabled) {
-			if (_vm->_isHiRes) {
-				_hitButton = button;
-			} else {
-				button->_altImage->drawImage(button->_x, button->_y);
-
-				for (int i = 0; i < 3; i++)
-					_vm->waitTOF();
-
-				button->_image->drawImage(button->_x, button->_y);
-			}
-
-			return button;
-		}
-	}
-
-	return nullptr;
-}
-
-void EventManager::attachButtonList(ButtonList *buttonList) {
-	if (_screenButtonList != buttonList)
-		_lastButtonHit = nullptr;
-
-	_screenButtonList = buttonList;
-}
-
-Button *EventManager::getButton(uint16 id) {
-	for (ButtonList::iterator buttonItr = _screenButtonList->begin(); buttonItr != _screenButtonList->end(); ++buttonItr) {
-		Button *button = *buttonItr;
-		if (button->_buttonId == id)
-			return button;
-	}
-
-	return nullptr;
-}
-
-void EventManager::updateMouse() {
-	if (!_hitButton)
-		return;
-
-	_hitButton->_altImage->drawImage(_hitButton->_x, _hitButton->_y);
-	for (int i = 0; i < 3; i++)
-		_vm->waitTOF();
-	_hitButton->_image->drawImage(_hitButton->_x, _hitButton->_y);
-
-	_hitButton = nullptr;
-	_vm->_graphics->screenUpdate();
-}
-
 void EventManager::initMouse() {
-	_vm->_system->setMouseCursor(mouseData, MOUSE_WIDTH, MOUSE_HEIGHT, 0, 0, 0);
-	_vm->_system->showMouse(false);
+	CursorMan.pushCursor(mouseData, MOUSE_WIDTH, MOUSE_HEIGHT, 0, 0, 0);
+	CursorMan.showMouse(false);
 
 	setMousePos(Common::Point(_vm->_graphics->_screenWidth / 2, _vm->_graphics->_screenHeight / 2));
 }
 
 void EventManager::mouseShow() {
-	_vm->_system->showMouse(true);
+	CursorMan.showMouse(true);
 }
 
 void EventManager::mouseHide() {
-	_vm->_system->showMouse(false);
+	CursorMan.showMouse(false);
 }
 
 void EventManager::setMousePos(Common::Point pos) {
@@ -148,16 +94,12 @@ void EventManager::setMousePos(Common::Point pos) {
 
 void EventManager::processInput() {
 	Common::Event event;
-	Button *curButton = nullptr;
 
 	while (_vm->_system->getEventManager()->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_LBUTTONDOWN:
-			if (_screenButtonList)
-				curButton = checkButtonHit(_screenButtonList, _vm->_isHiRes ? _mousePos : Common::Point(_mousePos.x / 2, _mousePos.y));
-
-			if (curButton)
-				_lastButtonHit = curButton;
+			if (_vm->_interface->checkButtonHit(_mousePos))
+				_buttonHit = true;
 			else
 				_leftClick = true;
 			break;
@@ -193,10 +135,51 @@ void EventManager::processInput() {
 			break;
 		}
 	}
+}
 
-	_vm->_system->copyRectToScreen(_vm->_graphics->_displayBuffer, _vm->_graphics->_screenWidth, 0, 0, _vm->_graphics->_screenWidth, _vm->_graphics->_screenHeight);
-	_vm->_console->onFrame();
-	_vm->_system->updateScreen();
+IntuiMessage *EventManager::getMsg() {
+	static IntuiMessage message;
+
+	_vm->_interface->handlePressedButton();
+	processInput();
+
+	if (_buttonHit) {
+		Button *lastButtonHit = _vm->_interface->checkButtonHit(_mousePos);
+		_buttonHit = false;
+		if (lastButtonHit) {
+			_vm->_interface->handlePressedButton();
+			message._msgClass = kMessageButtonUp;
+			message._code = lastButtonHit->_buttonId;
+			message._qualifier = _keyPressed.flags;
+			
+			return &message;
+		} else
+			return nullptr;
+	} else if (_leftClick || _rightClick) {
+		message._msgClass = (_leftClick) ? kMessageLeftClick : kMessageRightClick;
+		message._qualifier = 0;
+		message._mouse = _mousePos;
+		_leftClick = _rightClick = false;
+		return &message;
+	} else if (_keyPressed.keycode != Common::KEYCODE_INVALID) {
+		Button *curButton = _vm->_interface->checkNumButtonHit(_keyPressed.keycode);
+
+		if (curButton) {
+			message._msgClass = kMessageButtonUp;
+			message._code = curButton->_buttonId;
+		} else {
+			message._msgClass = kMessageRawKey;
+			message._code = _keyPressed.keycode;
+		}
+
+		message._qualifier = _keyPressed.flags;
+		message._mouse = _mousePos;
+
+		_keyPressed.keycode = Common::KEYCODE_INVALID;
+
+		return &message;
+	} else
+		return nullptr;
 }
 
 Common::Point EventManager::updateAndGetMousePos() {

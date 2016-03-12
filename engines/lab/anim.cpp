@@ -62,8 +62,6 @@ Anim::Anim(LabEngine *vm) : _vm(vm) {
 	_stopPlayingEnd = false;
 	_sampleSpeed = 0;
 	_doBlack = false;
-	_diffWidth = 0;
-	_diffHeight = 0;
 
 	for (int i = 0; i < 3 * 256; i++)
 		_diffPalette[i] = 0;
@@ -97,7 +95,7 @@ void Anim::diffNextFrame(bool onlyDiffData) {
 		startOfBuf = _vm->_graphics->getCurrentDrawingBuffer();
 		drawOnScreen = true;
 	}
-	byte *endOfBuf = startOfBuf + (int)_diffWidth * _diffHeight;
+	byte *endOfBuf = startOfBuf + (int)_headerdata._width * _headerdata._height;
 
 	int curBit = 0;
 
@@ -288,10 +286,12 @@ void Anim::readDiff(Common::File *diffFile, bool playOnce, bool onlyDiffData) {
 	_diffFile = diffFile;
 
 	_continuous = false;
-	uint32 signature1 = _diffFile->readUint32BE();
-	uint32 signature2 = _diffFile->readUint32LE();
 
-	if ((signature1 != MKTAG('D', 'I', 'F', 'F')) || (signature2 != 1219009121)) {
+	if (!_diffFile)
+		return;
+
+	uint32 magicBytes = _diffFile->readUint32LE();
+	if (magicBytes != 1219009121) {
 		_isPlaying = false;
 		return;
 	}
@@ -328,9 +328,7 @@ void Anim::readDiff(Common::File *diffFile, bool playOnce, bool onlyDiffData) {
 	_diffFile->skip(_size - 18);
 
 	_continuous = CONTINUOUS & _headerdata._flags;
-	_diffWidth = _headerdata._width;
-	_diffHeight = _headerdata._height;
-	_vm->_utils->setBytesPerRow(_diffWidth);
+	_vm->_utils->setBytesPerRow(_headerdata._width);
 
 	delete[] _scrollScreenBuffer;
 	_scrollScreenBuffer = nullptr;

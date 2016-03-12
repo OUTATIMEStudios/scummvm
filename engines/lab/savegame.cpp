@@ -149,13 +149,18 @@ bool LabEngine::saveGame(int slot, const Common::String desc) {
 
 	// Breadcrumbs
 	for (uint i = 0; i < MAX_CRUMBS; i++) {
-		file->writeUint16LE(_breadCrumbs[i]._roomNum);
-		file->writeUint16LE(_breadCrumbs[i]._direction);
+		file->writeUint16LE(_breadCrumbs[i]._crumbRoomNum);
+		file->writeUint16LE(_breadCrumbs[i]._crumbDirection);
 	}
 
 	file->flush();
 	file->finalize();
 	delete file;
+
+	_mainDisplay = true;
+	_alternate = false;
+	_event->simulateEvent();
+	_graphics->screenUpdate();
 
 	return true;
 }
@@ -171,7 +176,8 @@ bool LabEngine::loadGame(int slot) {
 	SaveGameHeader header;
 	readSaveGameHeader(file, header);
 	_roomNum = file->readUint16LE();
-	setDirection(file->readUint16LE());
+	_music->checkRoomMusic(1, _roomNum);
+	_direction = file->readUint16LE();
 	setQuarters(file->readUint16LE());
 
 	// Conditions
@@ -186,20 +192,31 @@ bool LabEngine::loadGame(int slot) {
 
 	// Breadcrumbs
 	for (int i = 0; i < MAX_CRUMBS; i++) {
-		_breadCrumbs[i]._roomNum = file->readUint16LE();
-		_breadCrumbs[i]._direction = file->readUint16LE();
+		_breadCrumbs[i]._crumbRoomNum = file->readUint16LE();
+		_breadCrumbs[i]._crumbDirection = file->readUint16LE();
 	}
 
-	_droppingCrumbs = (_breadCrumbs[0]._roomNum != 0);
+	_droppingCrumbs = (_breadCrumbs[0]._crumbRoomNum != 0);
 	_followingCrumbs = false;
 
 	for (int i = 0; i < MAX_CRUMBS; i++) {
-		if (_breadCrumbs[i]._roomNum == 0)
+		if (_breadCrumbs[i]._crumbRoomNum == 0)
 			break;
 		_numCrumbs = i;
 	}
 
 	delete file;
+
+	_curFileName = " ";
+	_closeDataPtr = nullptr;
+	_followingCrumbs = false;
+	_graphics->_longWinInFront = false;
+	_event->initMouse();
+
+	_mainDisplay = true;
+	_alternate = false;
+	_event->simulateEvent();
+	_graphics->screenUpdate();
 
 	return true;
 }
@@ -233,16 +250,9 @@ bool LabEngine::saveRestoreGame() {
 		int slot = dialog->runModalWithCurrentTarget();
 		if (slot >= 0) {
 			isOK = loadGame(slot);
-			if (isOK)
-				_music->checkRoomMusic();
 		}
 		delete dialog;
 	}
-
-	_alternate = false;
-	_mainDisplay = true;
-	_event->initMouse();
-	_graphics->screenUpdate();
 
 	return isOK;
 }

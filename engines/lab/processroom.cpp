@@ -143,8 +143,10 @@ void LabEngine::drawDirection(const CloseData *closePtr) {
 uint16 LabEngine::processArrow(uint16 curDirection, uint16 arrow) {
 	if (arrow == 1) { // Forward
 		uint16 room = _rooms[_roomNum]._doors[curDirection];
-		if (room != 0)
+		if (room != 0) {
+			_music->checkRoomMusic(_roomNum, room);
 			_roomNum = room;
+		}
 
 		return curDirection;
 	} else if (arrow == 0) { // Left
@@ -250,9 +252,16 @@ void LabEngine::doActions(const ActionList &actionList) {
 			_music->loadSoundEffect(action->_messages[0], true, false);
 			break;
 
-		case kActionShowDiff:
+		case kActionShowDiff: {
+			bool curWait = _anim->_waitForEffect;
+			// Pause the engine until the sound is finished
+			_anim->_waitForEffect = true;
 			_graphics->readPict(action->_messages[0], true);
+
+			// Restore the previous value of _waitForEffect
+			_anim->_waitForEffect = curWait;
 			break;
+			}
 
 		case kActionShowDiffLooping:	// used in scene 44 (heart of the labyrinth, minotaur)
 			_graphics->readPict(action->_messages[0], false);
@@ -327,6 +336,7 @@ void LabEngine::doActions(const ActionList &actionList) {
 				break;
 			}
 
+			_music->checkRoomMusic(_roomNum, action->_param1);
 			_roomNum   = action->_param1;
 			_direction = action->_param2 - 1;
 			_closeDataPtr = nullptr;
@@ -389,10 +399,7 @@ void LabEngine::doActions(const ActionList &actionList) {
 			break;
 
 		case kActionResetMusic:	// used in scene 45 (sheriff's office, after museum)
-			if (getPlatform() != Common::kPlatformAmiga)
-				_music->changeMusic("Music:BackGrou", false, true);
-			else
-				_music->changeMusic("Music:BackGround", false, true);
+			_music->resetMusic(true);
 			break;
 
 		case kActionFillMusic:
@@ -475,7 +482,7 @@ bool LabEngine::doActionRuleSub(int16 action, int16 roomNum, const CloseData *cl
 	if (closePtr) {
 		RuleList *rules = &(_rooms[_roomNum]._rules);
 
-		if (!rules && (roomNum == 0)) {
+		if (rules->empty() && (roomNum == 0)) {
 			_resource->readViews(roomNum);
 			rules = &(_rooms[roomNum]._rules);
 		}
@@ -523,7 +530,7 @@ bool LabEngine::doOperateRuleSub(int16 itemNum, int16 roomNum, const CloseData *
 		if (closePtr->_closeUpType > 0) {
 			RuleList *rules = &(_rooms[roomNum]._rules);
 
-			if (!rules && (roomNum == 0)) {
+			if (rules->empty() && (roomNum == 0)) {
 				_resource->readViews(roomNum);
 				rules = &(_rooms[roomNum]._rules);
 			}

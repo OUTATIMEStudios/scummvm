@@ -30,11 +30,14 @@
 
 #include "common/config-manager.h"
 
+#include "gui/message.h"
+
 #include "lab/lab.h"
 #include "lab/anim.h"
 #include "lab/dispman.h"
 #include "lab/eventman.h"
 #include "lab/image.h"
+#include "lab/interface.h"
 #include "lab/intro.h"
 #include "lab/labsets.h"
 #include "lab/music.h"
@@ -44,9 +47,6 @@
 #include "lab/utils.h"
 
 namespace Lab {
-
-#define CRUMBSWIDTH 24
-#define CRUMBSHEIGHT 24
 
 enum SpecialLock {
 	kLockCombination = 100,
@@ -99,6 +99,40 @@ static char initColors[] = { '\x00', '\x00', '\x00', '\x30',
 							 '\x20', '\x20', '\x20', '\x24',
 							 '\x24', '\x24', '\x2c', '\x2c',
 							 '\x2c', '\x08', '\x08', '\x08' };
+
+void LabEngine::handleTrialWarning() {
+	// Check if this is the Wyrmkeep trial
+	Common::File roomFile;
+	bool knownVersion = true;
+	bool roomFileOpened = roomFile.open("rooms/48");
+
+	if (!roomFileOpened)
+		knownVersion = false;
+	else if (roomFile.size() != 892)
+		knownVersion = false;
+	else {
+		roomFile.seek(352);
+		byte checkByte = roomFile.readByte();
+		if (checkByte == 0x00) {
+			// Full Windows version
+		}
+		else if (checkByte == 0x80) {
+			// Wyrmkeep trial version
+			_extraGameFeatures = GF_WINDOWS_TRIAL;
+
+			GUI::MessageDialog trialMessage("This is a trial Windows version of the game. To play the full version, you will need to use the original interpreter and purchase a key from Wyrmkeep");
+			trialMessage.runModal();
+		}
+		else {
+			knownVersion = false;
+		}
+
+		roomFile.close();
+	}
+
+	if (!knownVersion)
+		error("Unknown Windows version found, please report this version to the ScummVM team");
+}
 
 uint16 LabEngine::getQuarters() {
 	return _inventory[kItemQuarter]._quantity;
@@ -177,62 +211,51 @@ void LabEngine::eatMessages() {
 	} while (msg && !shouldQuit());
 }
 
-bool LabEngine::doCloseUp(const CloseData *closePtr) {
-	if (!closePtr)
-		return false;
+void LabEngine::handleMonitorCloseup() {
+	if (!_closeDataPtr)
+		return;
 
-	int luteRight;
-	Common::Rect textRect;
+	Common::Rect textRect(2, 2, 317, 165);
+	bool isInteractive = false;
 
-	if (getPlatform() != Common::kPlatformWindows) {
-		textRect = Common::Rect(0, 0, 319, 165);
-		luteRight = 124;
-	} else {
-		textRect = Common::Rect(2, 2, 317, 165);
-		luteRight = 128;
-	}
-
-	switch (closePtr->_closeUpType) {
+	switch (_closeDataPtr->_closeUpType) {
 	case kMonitorMuseum:
 	case kMonitorLibrary:
 	case kMonitorWindow:
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorGramophone:
 		textRect.right = 171;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorUnicycle:
 		textRect.left = 100;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorStatue:
 		textRect.left = 117;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorTalisman:
 		textRect.right = 184;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorLute:
-		textRect.right = luteRight;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
+		textRect.right = 128;
 		break;
 	case kMonitorClock:
 		textRect.right = 206;
-		doMonitor(closePtr->_graphicName, closePtr->_message, false, textRect);
 		break;
 	case kMonitorTerminal:
-		doMonitor(closePtr->_graphicName, closePtr->_message, true, textRect);
+		isInteractive = true;
 		break;
 	default:
-		return false;
+		return;
 	}
+
+	doMonitor(_closeDataPtr->_graphicName, _closeDataPtr->_message, isInteractive, textRect);
 
 	_curFileName = " ";
 	_graphics->drawPanel();
 
-	return true;
+	_closeDataPtr = nullptr;
+	_interface->mayShowCrumbIndicator();
+	_graphics->screenUpdate();
 }
 
 Common::String LabEngine::getInvName(uint16 curInv) {
@@ -243,7 +266,7 @@ Common::String LabEngine::getInvName(uint16 curInv) {
 		return "P:Mines/120";
 
 	if ((curInv == kItemBelt) && _conditions->in(kCondBeltGlowing))
-		return "P:Future/kCondBeltGlowing";
+		return "P:Future/BeltGlow";
 
 	if (curInv == kItemWestPaper) {
 		_curFileName = _inventory[curInv]._bitmapName;
@@ -263,25 +286,19 @@ Common::String LabEngine::getInvName(uint16 curInv) {
 }
 
 void LabEngine::interfaceOff() {
-	if (!_interfaceOff) {
-		_event->attachButtonList(nullptr);
-		_event->mouseHide();
-		_interfaceOff = true;
-	}
+	_interface->attachButtonList(nullptr);
+	_event->mouseHide();
 }
 
 void LabEngine::interfaceOn() {
-	if (_interfaceOff) {
-		_interfaceOff = false;
-		_event->mouseShow();
-	}
-
 	if (_graphics->_longWinInFront)
-		_event->attachButtonList(nullptr);
+		_interface->attachButtonList(nullptr);
 	else if (_alternate)
-		_event->attachButtonList(&_invButtonList);
+		_interface->attachButtonList(&_invButtonList);
 	else
-		_event->attachButtonList(&_moveButtonList);
+		_interface->attachButtonList(&_moveButtonList);
+
+	_event->mouseShow();
 }
 
 bool LabEngine::doUse(uint16 curInv) {
@@ -292,7 +309,7 @@ bool LabEngine::doUse(uint16 curInv) {
 		_anim->stopDiff();
 		_curFileName = " ";
 		_closeDataPtr = nullptr;
-		doMap(_roomNum);
+		doMap();
 		_graphics->setPalette(initColors, 8);
 		_graphics->drawMessage("", false);
 		_graphics->drawPanel();
@@ -409,11 +426,7 @@ void LabEngine::mainGameLoop() {
 		loadGame(ConfMan.getInt("save_slot"));
 
 		// Since the intro hasn't been shown, init the background music here
-		if (getPlatform() != Common::kPlatformAmiga)
-			_music->changeMusic("Music:BackGrou", false, false);
-		else
-			_music->changeMusic("Music:BackGround", false, false);
-		_music->checkRoomMusic();
+		_music->resetMusic(false);
 	}
 
 	uint16 curInv = kItemMap;
@@ -430,12 +443,7 @@ void LabEngine::mainGameLoop() {
 				break;
 			}
 
-			// Sees what kind of close up we're in and does the appropriate stuff, if any.
-			if (doCloseUp(_closeDataPtr)) {
-				_closeDataPtr = nullptr;
-				mayShowCrumbIndicator();
-				_graphics->screenUpdate();
-			}
+			handleMonitorCloseup();
 
 			// Sets the current picture properly on the screen
 			if (_mainDisplay)
@@ -473,7 +481,7 @@ void LabEngine::mainGameLoop() {
 				drawRoomMessage(curInv, _closeDataPtr);
 				forceDraw = false;
 
-				mayShowCrumbIndicator();
+				_interface->mayShowCrumbIndicator();
 				_graphics->screenUpdate();
 
 				if (!_followingCrumbs)
@@ -499,7 +507,6 @@ void LabEngine::mainGameLoop() {
 		if (!curMsg) {
 			// Does music load and next animation frame when you've run out of messages
 			gotMessage = false;
-			_music->checkRoomMusic();
 			updateEvents();
 			_anim->diffNextFrame();
 
@@ -508,14 +515,14 @@ void LabEngine::mainGameLoop() {
 
 				if (code == kButtonForward || code == kButtonLeft || code == kButtonRight) {
 					gotMessage = true;
-					mayShowCrumbIndicator();
+					_interface->mayShowCrumbIndicator();
 					_graphics->screenUpdate();
 					if (!processEvent(kMessageButtonUp, code, 0, _event->updateAndGetMousePos(), curInv, curMsg, forceDraw, code, actionMode))
 						break;
 				}
 			}
 
-			mayShowCrumbIndicator();
+			_interface->mayShowCrumbIndicator();
 			_graphics->screenUpdate();
 		} else {
 			gotMessage = true;
@@ -589,7 +596,7 @@ bool LabEngine::processEvent(MessageClass tmpClass, uint16 code, uint16 qualifie
 		else
 			performAction(actionMode, curPos, curInv);
 
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		_graphics->screenUpdate();
 	} else if (rightButtonClick) {
 		eatMessages();
@@ -609,7 +616,7 @@ bool LabEngine::processEvent(MessageClass tmpClass, uint16 code, uint16 qualifie
 		_graphics->drawPanel();
 		drawRoomMessage(curInv, _closeDataPtr);
 
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		_graphics->screenUpdate();
 	}
 
@@ -619,10 +626,10 @@ bool LabEngine::processEvent(MessageClass tmpClass, uint16 code, uint16 qualifie
 bool LabEngine::processKey(IntuiMessage *curMsg, uint32 msgClass, uint16 &qualifier, Common::Point &curPos, uint16 &curInv, bool &forceDraw, uint16 code) {
 	if ((getPlatform() == Common::kPlatformWindows) && (code == Common::KEYCODE_b)) {
 		// Start bread crumbs
-		_breadCrumbs[0]._roomNum = 0;
+		_breadCrumbs[0]._crumbRoomNum = 0;
 		_numCrumbs = 0;
 		_droppingCrumbs = true;
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		_graphics->screenUpdate();
 	} else if (getPlatform() == Common::kPlatformWindows && (code == Common::KEYCODE_f || code == Common::KEYCODE_r)) {
 		// Follow bread crumbs
@@ -647,11 +654,10 @@ bool LabEngine::processKey(IntuiMessage *curMsg, uint32 msgClass, uint16 &qualif
 					_graphics->screenUpdate();
 				}
 			} else {
-				_breadCrumbs[0]._roomNum = 0;
+				_breadCrumbs[0]._crumbRoomNum = 0;
 				_droppingCrumbs = false;
 
-				// Need to hide indicator!!!!
-				mayShowCrumbIndicatorOff();
+				_interface->mayShowCrumbIndicatorOff();
 				_graphics->screenUpdate();
 			}
 		}
@@ -714,7 +720,7 @@ void LabEngine::processMainButton(uint16 &curInv, uint16 &lastInv, uint16 &oldDi
 
 			_anim->_doBlack = true;
 			_closeDataPtr = nullptr;
-			mayShowCrumbIndicator();
+			_interface->mayShowCrumbIndicator();
 		} else {
 			uint16 oldActionMode = actionMode;
 			actionMode = buttonId;
@@ -745,7 +751,7 @@ void LabEngine::processMainButton(uint16 &curInv, uint16 &lastInv, uint16 &oldDi
 		_graphics->drawPanel();
 		drawRoomMessage(curInv, _closeDataPtr);
 
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		break;
 
 	case kButtonLeft:
@@ -764,7 +770,7 @@ void LabEngine::processMainButton(uint16 &curInv, uint16 &lastInv, uint16 &oldDi
 		_anim->_doBlack = true;
 		_direction = newDir;
 		forceDraw = true;
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		}
 		break;
 
@@ -804,13 +810,13 @@ void LabEngine::processMainButton(uint16 &curInv, uint16 &lastInv, uint16 &oldDi
 				_followingCrumbs = false;
 				_droppingCrumbs = false;
 				_numCrumbs = 0;
-				_breadCrumbs[0]._roomNum = 0;
+				_breadCrumbs[0]._crumbRoomNum = 0;
 			} else {
 				bool intersect = false;
 				for (int idx = 0; idx < _numCrumbs; idx++) {
-					if (_breadCrumbs[idx]._roomNum == _roomNum) {
+					if (_breadCrumbs[idx]._crumbRoomNum == _roomNum) {
 						_numCrumbs = idx + 1;
-						_breadCrumbs[_numCrumbs]._roomNum = 0;
+						_breadCrumbs[_numCrumbs]._crumbRoomNum = 0;
 						intersect = true;
 					}
 				}
@@ -821,20 +827,20 @@ void LabEngine::processMainButton(uint16 &curInv, uint16 &lastInv, uint16 &oldDi
 						memcpy(&_breadCrumbs[0], &_breadCrumbs[1], _numCrumbs * sizeof _breadCrumbs[0]);
 					}
 
-					_breadCrumbs[_numCrumbs]._roomNum = _roomNum;
-					_breadCrumbs[_numCrumbs++]._direction = _direction;
+					_breadCrumbs[_numCrumbs]._crumbRoomNum = _roomNum;
+					_breadCrumbs[_numCrumbs++]._crumbDirection = _direction;
 				}
 			}
 		}
 
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		}
 		break;
 
 	case kButtonMap:
 		doUse(kItemMap);
 
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		break;
 	}
 
@@ -921,10 +927,10 @@ void LabEngine::processAltButton(uint16 &curInv, uint16 &lastInv, uint16 buttonI
 		break;
 
 	case kButtonBreadCrumbs:
-		_breadCrumbs[0]._roomNum = 0;
+		_breadCrumbs[0]._crumbRoomNum = 0;
 		_numCrumbs = 0;
 		_droppingCrumbs = true;
-		mayShowCrumbIndicator();
+		_interface->mayShowCrumbIndicator();
 		break;
 
 	case kButtonFollowCrumbs:
@@ -946,11 +952,10 @@ void LabEngine::processAltButton(uint16 &curInv, uint16 &lastInv, uint16 buttonI
 				_graphics->drawPanel();
 				drawRoomMessage(curInv, _closeDataPtr);
 			} else {
-				_breadCrumbs[0]._roomNum = 0;
+				_breadCrumbs[0]._crumbRoomNum = 0;
 				_droppingCrumbs = false;
 
-				// Need to hide indicator!!!!
-				mayShowCrumbIndicatorOff();
+				_interface->mayShowCrumbIndicatorOff();
 			}
 		}
 		break;
@@ -1022,6 +1027,9 @@ void LabEngine::performAction(uint16 actionMode, Common::Point curPos, uint16 &c
 }
 
 void LabEngine::go() {
+	if (getPlatform() == Common::kPlatformWindows)
+		handleTrialWarning();
+
 	_isHiRes = ((getFeatures() & GF_LOWRES) == 0);
 	_graphics->setUpScreens();
 
@@ -1072,12 +1080,12 @@ MainButton LabEngine::followCrumbs() {
 	}
 
 	if (!_isCrumbTurning)
-		_breadCrumbs[_numCrumbs--]._roomNum = 0;
+		_breadCrumbs[_numCrumbs--]._crumbRoomNum = 0;
 
 	// Is the current crumb this room? If not, logic error.
-	if (_roomNum != _breadCrumbs[_numCrumbs]._roomNum) {
+	if (_roomNum != _breadCrumbs[_numCrumbs]._crumbRoomNum) {
 		_numCrumbs = 0;
-		_breadCrumbs[0]._roomNum = 0;
+		_breadCrumbs[0]._crumbRoomNum = 0;
 		_droppingCrumbs = false;
 		_followingCrumbs = false;
 		return kButtonNone;
@@ -1085,11 +1093,11 @@ MainButton LabEngine::followCrumbs() {
 
 	Direction exitDir;
 	// which direction is last crumb
-	if (_breadCrumbs[_numCrumbs]._direction == kDirectionEast)
+	if (_breadCrumbs[_numCrumbs]._crumbDirection == kDirectionEast)
 		exitDir = kDirectionWest;
-	else if (_breadCrumbs[_numCrumbs]._direction == kDirectionWest)
+	else if (_breadCrumbs[_numCrumbs]._crumbDirection == kDirectionWest)
 		exitDir = kDirectionEast;
-	else if (_breadCrumbs[_numCrumbs]._direction == kDirectionNorth)
+	else if (_breadCrumbs[_numCrumbs]._crumbDirection == kDirectionNorth)
 		exitDir = kDirectionSouth;
 	else
 		exitDir = kDirectionNorth;
@@ -1098,7 +1106,7 @@ MainButton LabEngine::followCrumbs() {
 
 	if (_numCrumbs == 0) {
 		_isCrumbTurning = false;
-		_breadCrumbs[0]._roomNum = 0;
+		_breadCrumbs[0]._crumbRoomNum = 0;
 		_droppingCrumbs = false;
 		_followingCrumbs = false;
 	} else {
@@ -1110,87 +1118,6 @@ MainButton LabEngine::followCrumbs() {
 	}
 
 	return moveDir;
-}
-
-
-void LabEngine::mayShowCrumbIndicator() {
-	static byte dropCrumbsImageData[CRUMBSWIDTH * CRUMBSHEIGHT] = {
-		0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0,
-		0, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 0,
-		4, 7, 7, 3, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 7, 7, 4,
-		4, 7, 4, 4, 0, 0, 3, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 3, 2, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 3, 2, 2, 2, 3, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 3, 3, 3, 4, 4, 4, 4, 4, 4, 0, 0, 3, 2, 3, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 0, 4, 7, 7, 7, 7, 7, 7, 4, 3, 2, 2, 2, 3, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 4, 7, 7, 4, 4, 4, 4, 7, 7, 4, 3, 3, 3, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 4, 7, 4, 4, 0, 0, 4, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 4, 4, 4, 3, 0, 0, 0, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 0, 4, 3, 2, 3, 0, 0, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 0, 0, 3, 2, 3, 0, 0, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 4, 0, 0, 0, 0, 0, 3, 2, 2, 2, 3, 4, 4, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		4, 7, 7, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 4, 0, 0, 0, 0, 4, 7, 4,
-		0, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 0, 0, 0, 0, 0, 4, 7, 4,
-		0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 0, 0, 0, 0, 0, 4, 7, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3, 0, 0, 0, 0, 4, 7, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3, 0, 0, 0, 0, 4, 7, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 2, 2, 2, 3, 0, 0, 4, 4, 7, 4,
-		0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 7, 7, 4,
-		0, 0, 4, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 4, 0,
-		0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0
-	};
-
-	if (getPlatform() != Common::kPlatformWindows)
-		return;
-
-	if (_droppingCrumbs && _mainDisplay) {
-		static byte *imgData = new byte[CRUMBSWIDTH * CRUMBSHEIGHT];
-		memcpy(imgData, dropCrumbsImageData, CRUMBSWIDTH * CRUMBSHEIGHT);
-		static Image dropCrumbsImage(CRUMBSWIDTH, CRUMBSHEIGHT, imgData, this);
-
-		dropCrumbsImage.drawMaskImage(612, 4);
-	}
-}
-
-void LabEngine::mayShowCrumbIndicatorOff() {
-	static byte dropCrumbsOffImageData[CRUMBSWIDTH * CRUMBSHEIGHT] = {
-		0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0,
-		0, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4, 0,
-		4, 8, 8, 3, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 8, 8, 4,
-		4, 8, 4, 4, 0, 0, 3, 8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 3, 8, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 3, 8, 8, 8, 3, 0, 0, 0, 0, 0, 0, 0, 3, 8, 3, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 3, 3, 3, 4, 4, 4, 4, 4, 4, 0, 0, 3, 8, 3, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 0, 4, 8, 8, 8, 8, 8, 8, 4, 3, 8, 8, 8, 3, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 4, 8, 8, 4, 4, 4, 4, 8, 8, 4, 3, 3, 3, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 4, 8, 4, 4, 0, 0, 4, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 4, 4, 4, 3, 0, 0, 0, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 0, 4, 3, 8, 3, 0, 0, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 0, 0, 3, 8, 3, 0, 0, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 4, 0, 0, 0, 0, 0, 3, 8, 8, 8, 3, 4, 4, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		4, 8, 8, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 8, 4, 0, 0, 0, 0, 4, 8, 4,
-		0, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4, 0, 0, 0, 0, 0, 4, 8, 4,
-		0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 0, 0, 0, 0, 0, 4, 8, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 3, 0, 0, 0, 0, 4, 8, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 3, 0, 0, 0, 0, 4, 8, 4,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 8, 8, 3, 0, 0, 4, 4, 8, 4,
-		0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 8, 8, 4,
-		0, 0, 4, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 4, 0,
-		0, 0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0
-	};
-
-	if (getPlatform() != Common::kPlatformWindows)
-		return;
-
-	if (_mainDisplay) {
-		static byte *imgData = new byte[CRUMBSWIDTH * CRUMBSHEIGHT];
-		memcpy(imgData, dropCrumbsOffImageData, CRUMBSWIDTH * CRUMBSHEIGHT);
-		static Image dropCrumbsOffImage(CRUMBSWIDTH, CRUMBSHEIGHT, imgData, this);
-
-		dropCrumbsOffImage.drawMaskImage(612, 4);
-	}
 }
 
 } // End of namespace Lab

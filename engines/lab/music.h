@@ -50,14 +50,12 @@ private:
 	LabEngine *_vm;
 
 	Common::File *_musicFile;
-	uint16 _curRoomMusic;
 	uint32 _storedPos;
 
 	Audio::SoundHandle _musicHandle;
 	Audio::SoundHandle _sfxHandle;
 
 private:
-	void readSound(bool waitTillFinished, bool loop, Common::File *file);
 	byte getSoundFlags();
 
 public:
@@ -68,10 +66,12 @@ public:
 	 */
 	void changeMusic(const Common::String filename, bool storeCurPos, bool seektoStoredPos);
 
+	void resetMusic(bool seekToStoredPos);
+
 	/**
 	 * Checks the music that should be playing in a particular room.
 	 */
-	void checkRoomMusic();
+	void checkRoomMusic(uint16 prevRoom, uint16 newRoom);
 
 	/**
 	 * Frees up the music buffers and closes the file.
@@ -84,7 +84,7 @@ public:
 	/**
 	 * Reads in a sound effect file.  Ignores any graphics.
 	 */
-	bool loadSoundEffect(const Common::String filename, bool loop, bool waitTillFinished);
+	void loadSoundEffect(const Common::String filename, bool loop, bool waitTillFinished);
 
 	void stopSoundEffect();
 };

@@ -242,7 +242,12 @@ void SpecialLocks::showTileLock(const Common::String filename, bool showSolution
 	_vm->_anim->_noPalChange = false;
 	_vm->_graphics->blackScreen();
 
-	Common::File *tileFile = _vm->_resource->openDataFile(showSolution ? "P:TileSolution" : "P:Tile");
+	Common::File *tileFile;
+	if (_vm->getPlatform() == Common::kPlatformDOS)
+		tileFile = _vm->_resource->openDataFile(showSolution ? "P:TileSolu" : "P:Tile");
+	else
+		// Windows and Amiga versions use TileSolution and Tile
+		tileFile = _vm->_resource->openDataFile(showSolution ? "P:TileSolution" : "P:Tile");
 
 	int start = showSolution ? 0 : 1;
 
@@ -323,11 +328,7 @@ void SpecialLocks::changeCombination(uint16 number) {
 	byte *buffer = new byte[_numberImages[1]->_width * _numberImages[1]->_height * 2];
 
 	for (int i = 1; i <= (_numberImages[combnum]->_height / 2); i++) {
-		if (_vm->_isHiRes) {
-			if (i & 1)
-				_vm->waitTOF();
-		}
-		else
+		if (i & 1)
 			_vm->waitTOF();
 
 		display.setData(_vm->_graphics->getCurrentDrawingBuffer(), false);

@@ -70,6 +70,7 @@ class GfxPaint;
 class GfxPaint16;
 class GfxPaint32;
 class GfxPalette;
+class GfxPalette32;
 class GfxPorts;
 class GfxScreen;
 class GfxText16;
@@ -235,6 +236,8 @@ public:
 	bool canLoadGameStateCurrently();
 	bool canSaveGameStateCurrently();
 	void syncSoundSettings();
+	uint32 getTickCount();
+	void setTickCount(const uint32 ticks);
 
 	/**
 	 * Syncs the audio options of the ScummVM launcher (speech, subtitles or
@@ -266,6 +269,7 @@ public:
 	Common::Platform getPlatform() const;
 	bool isDemo() const;
 	bool isCD() const;
+	bool forceHiresGraphics() const;
 
 	/** Returns true if the game's original platform is big-endian. */
 	bool isBE() const;
@@ -343,7 +347,8 @@ public:
 	GfxCoordAdjuster *_gfxCoordAdjuster;
 	GfxCursor *_gfxCursor;
 	GfxMenu *_gfxMenu; // Menu for 16-bit gfx
-	GfxPalette *_gfxPalette;
+	GfxPalette *_gfxPalette16;
+	GfxPalette32 *_gfxPalette32; // Palette for 32-bit gfx
 	GfxPaint *_gfxPaint;
 	GfxPaint16 *_gfxPaint16; // Painting in 16-bit gfx
 	GfxPaint32 *_gfxPaint32; // Painting in 32-bit gfx
@@ -418,6 +423,7 @@ private:
 	Console *_console;
 	Common::RandomSource _rng;
 	Common::MacResManager _macExecutable;
+	bool _forceHiresGraphics; // user-option for GK1, KQ6, PQ4
 };
 
 

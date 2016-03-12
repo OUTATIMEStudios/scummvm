@@ -111,7 +111,7 @@ int SdlEventSource::mapKey(SDLKey sdlKey, SDLMod mod, Uint16 unicode) {
 	Common::KeyCode key = SDLToOSystemKeycode(sdlKey);
 
 	if (key >= Common::KEYCODE_F1 && key <= Common::KEYCODE_F9) {
-		return key - SDLK_F1 + Common::ASCII_F1;
+		return key - Common::KEYCODE_F1 + Common::ASCII_F1;
 	} else if (key >= Common::KEYCODE_KP0 && key <= Common::KEYCODE_KP9) {
 		return key - Common::KEYCODE_KP0 + '0';
 	} else if (key >= Common::KEYCODE_UP && key <= Common::KEYCODE_PAGEDOWN) {
@@ -545,8 +545,8 @@ bool SdlEventSource::handleKeyDown(SDL_Event &ev, Common::Event &event) {
 		return true;
 	}
 #else
-	// Ctrl-z and Alt-X quit
-	if ((event.kbd.hasFlags(Common::KBD_CTRL) && ev.key.keysym.sym == 'z') || (event.kbd.hasFlags(Common::KBD_ALT) && ev.key.keysym.sym == 'x')) {
+	// Ctrl-z quits
+	if ((event.kbd.hasFlags(Common::KBD_CTRL) && ev.key.keysym.sym == 'z')) {
 		event.type = Common::EVENT_QUIT;
 		return true;
 	}
@@ -603,11 +603,6 @@ bool SdlEventSource::handleKeyUp(SDL_Event &ev, Common::Event &event) {
 #if defined(MACOSX)
 	if ((mod & KMOD_META) && ev.key.keysym.sym == 'q')
 		return false;	// On Macintosh, Cmd-Q quits
-#elif defined(POSIX)
-	// Control Q has already been handled above
-#else
-	if ((mod & KMOD_ALT) && ev.key.keysym.sym == 'x')
-		return false;	// Alt-x quit
 #endif
 
 	// If we reached here, this isn't an event handled by handleKeyDown(), thus

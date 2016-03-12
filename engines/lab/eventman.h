@@ -45,54 +45,19 @@ struct IntuiMessage {
 	Common::Point _mouse;
 };
 
-struct Button {
-	uint16 _x, _y, _buttonId;
-	Common::KeyCode _keyEquiv; // the key which activates this button
-	bool _isEnabled;
-	Image *_image, *_altImage;
-};
-
-typedef Common::List<Button *> ButtonList;
-
 class EventManager {
 private:
 	LabEngine *_vm;
 
 	bool _leftClick;
 	bool _rightClick;
+	bool _buttonHit;
 
-	Button *_hitButton;
-	Button *_lastButtonHit;
-	ButtonList *_screenButtonList;
 	Common::Point _mousePos;
 	Common::KeyState _keyPressed;
 
-private:
-	/**
-	 * Checks whether or not the cords fall within one of the buttons in a list
-	 * of buttons.
-	 */
-	Button *checkButtonHit(ButtonList *buttonList, Common::Point pos);
-
-	/**
-	 * Checks whether or not the coords fall within one of the buttons in a list
-	 * of buttons.
-	 */
-	Button *checkNumButtonHit(ButtonList *buttonList, Common::KeyCode key);
-
 public:
 	EventManager (LabEngine *vm);
-
-	void attachButtonList(ButtonList *buttonList);
-	Button *createButton(uint16 x, uint16 y, uint16 id, Common::KeyCode key, Image *image, Image *altImage);
-	void toggleButton(Button *button, uint16 penColor, bool enable);
-
-	/**
-	 * Draws a button list to the screen.
-	 */
-	void drawButtonList(ButtonList *buttonList);
-	void freeButtonList(ButtonList *buttonList);
-	Button *getButton(uint16 id);
 
 	IntuiMessage *getMsg();
 
@@ -116,7 +81,6 @@ public:
 	 * Moves the mouse to new co-ordinates.
 	 */
 	void setMousePos(Common::Point pos);
-	void updateMouse();
 	Common::Point updateAndGetMousePos();
 
 	/**
