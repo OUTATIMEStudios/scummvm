@@ -203,3 +203,5 @@ dists/winuwp/ScummVMUniversal/_pkginfo.txt
 dists/winuwp/ScummVMUniversal/_scale-100.appx
 dists/winuwp/ScummVMUniversal/_scale-400.appx
 dists/winuwp/ScummVMUniversal.VC.opendb
+dists/winuwp/ScummVMUniversal/SDL2.dll
+*.db

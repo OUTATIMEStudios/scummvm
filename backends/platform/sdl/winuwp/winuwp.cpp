@@ -64,7 +64,11 @@ Common::String OSystem_WinUWP::getDefaultConfigFileName() {
 
 Common::String OSystem_WinUWP::getSystemLanguage() const
 {
-	auto language = Windows::System::UserProfile::GlobalizationPreferences::Languages->First()->Current->Data();
+	if (Windows::System::UserProfile::GlobalizationPreferences::Languages->Size == 0) {
+		return Common::String("en_US");
+	}
+
+	auto language = Windows::System::UserProfile::GlobalizationPreferences::Languages->GetAt(0)->Data();
 	static char asciiString[MAX_PATH];
 	WideCharToMultiByte(CP_ACP, 0, language, wcslen(language) + 1, asciiString, sizeof(asciiString), NULL, NULL);
 	std::string str = std::string(asciiString);
