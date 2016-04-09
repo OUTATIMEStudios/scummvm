@@ -128,6 +128,7 @@ _timidity=auto
 _zlib=auto
 _mpeg2=auto
 _sparkle=auto
+_osxdockplugin=auto
 _jpeg=auto
 _png=auto
 _theoradec=auto
@@ -162,6 +163,7 @@ _translation=yes
 # Default platform settings
 _backend=sdl
 _16bit=auto
+_highres=auto
 _savegame_timestamp=auto
 _dynamic_modules=no
 _elf_loader=no
@@ -201,6 +203,7 @@ add_feature 16bit "16bit color" "_16bit"
 add_feature faad "libfaad" "_faad"
 add_feature flac "FLAC" "_flac"
 add_feature freetype2 "FreeType2" "_freetype2"
+add_feature highres "high resolution" "_highres"
 add_feature mad "MAD" "_mad"
 add_feature jpeg "JPEG" "_jpeg"
 add_feature png "PNG" "_png"
@@ -922,6 +925,7 @@ Optional Features:
   --default-dynamic        make plugins dynamic by default
   --disable-mt32emu        don't enable the integrated MT-32 emulator
   --disable-16bit          don't enable 16bit color support
+  --disable-highres        don't enable support for high resolution engines >320x240
   --disable-savegame-timestamp don't use timestamps for blank savegame descriptions
   --disable-scalers        exclude scalers
   --disable-hq-scalers     exclude HQ2x and HQ3x scalers
@@ -982,6 +986,8 @@ Optional Libraries:
   --with-sparkle-prefix=DIR   Prefix where sparkle is installed (Mac OS X only - optional)
   --disable-sparkle        disable sparkle automatic update support [Mac OS X only - autodetect]
 
+  --disable-osx-dock-plugin disable the NSDockTilePlugin support [Mac OS X only - autodetect]
+
   --with-sdl-prefix=DIR    Prefix where the sdl-config script is
                            installed (optional)
 
@@ -1019,6 +1025,8 @@ done # for parm in ...
 for ac_option in $@; do
 	case "$ac_option" in
 	--disable-16bit)          _16bit=no       ;;
+	--enable-highres)         _highres=yes    ;;
+	--disable-highres)        _highres=no     ;;
 	--disable-savegame-timestamp) _savegame_timestamp=no ;;
 	--disable-scalers)        _build_scalers=no ;;
 	--disable-hq-scalers)     _build_hq_scalers=no ;;
@@ -1042,6 +1050,8 @@ for ac_option in $@; do
 	--disable-zlib)           _zlib=no        ;;
 	--enable-sparkle)         _sparkle=yes    ;;
 	--disable-sparkle)        _sparkle=no     ;;
+	--enable-osx-dock-plugin) _osxdockplugin=yes;;
+	--disable-osx-dock-plugin) _osxdockplugin=no;;
 	--enable-nasm)            _nasm=yes       ;;
 	--disable-nasm)           _nasm=no        ;;
 	--enable-mpeg2)           _mpeg2=yes      ;;
@@ -2438,6 +2448,10 @@ case $_host_os in
 	mint*)
 		append_var DEFINES "-DSYSTEM_NOT_SUPPORTING_D_TYPE"
 		;;
+	msys)
+		echo ERROR: Using the MSYS shell in msys mode is not supported. Please use the MSYS shell in mingw mode instead.
+		exit 1
+		;;
 	n64)
 		append_var DEFINES "-D__N64__"
 		append_var DEFINES "-DLIMIT_FPS"
@@ -3210,6 +3224,26 @@ case $_backend in
 esac
 
 #
+# Enable High resolution engines (>320x240) support only for backends which support it
+#
+case $_backend in
+	gcw0)
+		if test "$_highres" = yes ; then
+			_highres=yes
+		else
+			_highres=no
+		fi
+		;;
+	*)
+		if test "$_highres" = no ; then
+			_highres=no
+		else
+			_highres=yes
+		fi
+		;;
+esac
+
+#
 # Enable Event Recorder only for backends that support it
 #
 case $_backend in
@@ -3520,6 +3554,11 @@ define_in_config_if_yes "$_mt32emu" 'USE_MT32EMU'
 # Check whether 16bit color support is requested
 #
 define_in_config_if_yes "$_16bit" 'USE_RGB_COLOR'
+
+#
+# Check whether High resolution graphics support is requested
+#
+define_in_config_if_yes "$_highres" 'USE_HIGHRES'
 
 #
 # Check whether save games use the current time as default description
@@ -3879,26 +3918,61 @@ echo "$_mpeg2"
 #
 # Check for Sparkle if updates support is enabled
 #
-echocheck "Sparkle"
-if test "$_updates" = no; then
-	_sparkle=no
-else
-if test "$_sparkle" = auto ; then
-	_sparkle=no
-	cat > $TMPC << EOF
+#
+# Check is NSDockTilePlugIn protocol is supported
+#
+case $_host_os in
+	darwin*)
+		echocheck "Sparkle"
+		if test "$_updates" = no; then
+			_sparkle=no
+		else
+		if test "$_sparkle" = auto ; then
+			_sparkle=no
+			cat > $TMPC << EOF
 #include <Cocoa/Cocoa.h>
 #include <Sparkle/Sparkle.h>
 int main(void) { SUUpdater *updater = [SUUpdater sharedUpdater]; return 0; }
 EOF
-	cc_check $SPARKLE_CFLAGS $SPARKLE_LIBS -framework Sparkle -ObjC++ -lobjc && _sparkle=yes
-fi
-if test "$_sparkle" = yes ; then
-	append_var LIBS "$SPARKLE_LIBS -framework Sparkle"
-	append_var INCLUDES "$SPARKLE_CFLAGS"
-fi
-define_in_config_if_yes "$_sparkle" 'USE_SPARKLE'
-fi
-echo "$_sparkle"
+			cc_check $SPARKLE_CFLAGS $SPARKLE_LIBS -framework Sparkle -ObjC++ -lobjc && _sparkle=yes
+		fi
+		if test "$_sparkle" = yes ; then
+			append_var LIBS "$SPARKLE_LIBS -framework Sparkle"
+			append_var INCLUDES "$SPARKLE_CFLAGS"
+		fi
+		define_in_config_if_yes "$_sparkle" 'USE_SPARKLE'
+		fi
+		echo "$_sparkle"
+	;;
+	*)
+		_sparkle=no
+	;;
+esac
+
+#
+# Check is NSDockTilePlugIn protocol is supported
+#
+case $_host_os in
+	darwin*)
+		# NSDockTilePlugIn was added in OS X 10.6, so will not be available when compiling on older OS X versions.
+		echocheck "DockTilePlugin"
+		if test "$_osxdockplugin" = auto ; then
+			_osxdockplugin=no
+			cat > $TMPC << EOF
+#include <Cocoa/Cocoa.h>
+@interface ScummVMDockTilePlugIn : NSObject <NSDockTilePlugIn> {
+}
+@end
+EOF
+			cc_check -c -ObjC++ && _osxdockplugin=yes
+		fi
+		define_in_config_if_yes "$_osxdockplugin" 'USE_DOCKTILEPLUGIN'
+		echo "$_osxdockplugin"
+	;;
+	*)
+		_osxdockplugin=no
+	;;
+esac
 
 #
 # Check for FluidSynth
@@ -4422,6 +4496,10 @@ fi
 
 if test "$_16bit" = yes ; then
 	echo_n ", 16bit color"
+fi
+
+if test "$_highres" = yes ; then
+	echo_n ", highres"
 fi
 
 if test "$_savegame_timestamp" = yes ; then
