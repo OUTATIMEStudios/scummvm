@@ -97,6 +97,16 @@ project.xcworkspace
 /dists/msvc*/*.dll
 /dists/msvc*/test_runner.cpp
 
+/dists/winuwp/[Dd]ebug*/
+/dists/winuwp/[Rr]elease*/
+/dists/winuwp/[Aa]nalysis*/
+/dists/winuwp/*.lib
+/dists/winuwp/*.SAV
+/dists/winuwp/*.dat
+/dists/winuwp/*.dll
+/dists/winuwp/test_runner.cpp
+/dists/winuwp/.vs/
+
 /doc/*.aux
 /doc/*.dvi
 /doc/*.log
